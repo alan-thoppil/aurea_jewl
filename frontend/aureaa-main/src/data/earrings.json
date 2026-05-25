@@ -1,0 +1,50 @@
+[
+  {
+    "sku": "AU-EAR-01", "name": "Diamond Solitaire Studs", "category": "Earrings", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 4.50, "making_charges": 600, "stock_count": 10,
+    "image_url": "/images/earring.png", "description": "Classic and elegant round brilliant diamond studs.", "badge": "Best Seller"
+  },
+  {
+    "sku": "AU-EAR-02", "name": "Gold Jhumka Earrings", "category": "Earrings", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 25.00, "making_charges": 1500, "stock_count": 5,
+    "image_url": "/images/earring.png", "description": "Heavy traditional Indian Jhumka earrings crafted in pure gold."
+  },
+  {
+    "sku": "AU-EAR-03", "name": "Classic Hoop Earrings", "category": "Earrings", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 8.00, "making_charges": 400, "stock_count": 12,
+    "image_url": "/images/earring.png", "description": "Timeless large gold hoop earrings."
+  },
+  {
+    "sku": "AU-EAR-04", "name": "Emerald Drop Earrings", "category": "Earrings", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 12.50, "making_charges": 800, "stock_count": 6,
+    "image_url": "/images/earring.png", "description": "Stately 18K yellow gold earrings bearing large drop-cut intense emeralds."
+  },
+  {
+    "sku": "AU-EAR-05", "name": "Diamond Chandelier Drops", "category": "Earrings", "collection": "Bridal", "metal": "Platinum", "purity": "PT950", "weight": 18.00, "making_charges": 1200, "stock_count": 3,
+    "image_url": "/images/diamond_chandelier_earrings.png", "description": "Cascading diamond chandelier earrings fit for royalty.", "badge": "Premium"
+  },
+  {
+    "sku": "AU-EAR-06", "name": "Classic Pearl Earrings", "category": "Earrings", "collection": "Womens", "metal": "Silver", "purity": "925", "weight": 3.20, "making_charges": 150, "stock_count": 20,
+    "image_url": "/images/pearl_studs.png", "description": "Classic cultured pearl studs."
+  },
+  {
+    "sku": "AU-EAR-07", "name": "Temple Design Earrings", "category": "Earrings", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 35.00, "making_charges": 1800, "stock_count": 2,
+    "image_url": "/images/earring.png", "description": "Intricate temple motif earrings."
+  },
+  {
+    "sku": "AU-EAR-08", "name": "Bridal Antique Earrings", "category": "Earrings", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 42.00, "making_charges": 2200, "stock_count": 4,
+    "image_url": "/images/earring.png", "description": "Massive antique finished gold earrings for the bride."
+  },
+  {
+    "sku": "AU-EAR-09", "name": "Little Star Gold Studs", "category": "Earrings", "collection": "Child", "metal": "Gold", "purity": "18K", "weight": 1.50, "making_charges": 200, "stock_count": 25,
+    "image_url": "/images/gold_star_studs.png", "description": "Tiny, safe screw-back gold star studs for toddlers and children."
+  },
+  {
+    "sku": "AU-EAR-10", "name": "Daily Wear Gold Studs", "category": "Earrings", "collection": "Womens", "metal": "Gold", "purity": "22K", "weight": 2.80, "making_charges": 300, "stock_count": 18,
+    "image_url": "/images/earring.png", "description": "Simple and durable 22K gold studs."
+  },
+  {
+    "sku": "AU-EAR-11", "name": "Platinum Huggie Earrings", "category": "Earrings", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 6.50, "making_charges": 450, "stock_count": 14,
+    "image_url": "/images/earring.png", "description": "Sleek and modern platinum huggies."
+  },
+  {
+    "sku": "AU-EAR-12", "name": "Luxury Diamond Halo Earrings", "category": "Earrings", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 8.00, "making_charges": 900, "stock_count": 7,
+    "image_url": "/images/earring.png", "description": "Stunning center diamonds surrounded by a double halo."
+  }
+]

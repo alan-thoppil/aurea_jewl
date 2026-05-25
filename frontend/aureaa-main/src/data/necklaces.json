@@ -1,0 +1,50 @@
+[
+  {
+    "sku": "AU-NEC-01", "name": "Gold Cuban Chain", "category": "Necklaces", "collection": "Gents", "metal": "Gold", "purity": "22K", "weight": 45.00, "making_charges": 600, "stock_count": 8,
+    "image_url": "/images/placeholder.png", "description": "A heavy, indestructible 22K gold cuban link chain for men.", "badge": "Best Seller"
+  },
+  {
+    "sku": "AU-NEC-02", "name": "Kerala Traditional Necklace", "category": "Necklaces", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 65.20, "making_charges": 1200, "stock_count": 5,
+    "image_url": "/images/placeholder.png", "description": "Classic Kerala styling with intricate gold beadwork."
+  },
+  {
+    "sku": "AU-NEC-03", "name": "Diamond Cascade Necklace", "category": "Necklaces", "collection": "Bridal", "metal": "Platinum", "purity": "PT950", "weight": 85.50, "making_charges": 2500, "stock_count": 2,
+    "image_url": "/images/diamond_necklace.png", "description": "An extraordinary bridal necklace set dripping in flawless VVS diamonds."
+  },
+  {
+    "sku": "AU-NEC-04", "name": "Imperial Bridal Necklace", "category": "Necklaces", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 110.00, "making_charges": 3000, "stock_count": 3,
+    "image_url": "/images/kundan_choker.png", "description": "The ultimate bridal statement piece crafted in pure 22K gold.", "badge": "Exclusive"
+  },
+  {
+    "sku": "AU-NEC-05", "name": "Lightweight Chain", "category": "Necklaces", "collection": "Womens", "metal": "Rose Gold", "purity": "18K", "weight": 8.50, "making_charges": 300, "stock_count": 25,
+    "image_url": "/images/rose_gold_chain.png", "description": "A delicate and minimal rose gold chain for everyday wear."
+  },
+  {
+    "sku": "AU-NEC-06", "name": "Daily Wear Pendant", "category": "Necklaces", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 12.00, "making_charges": 400, "stock_count": 15,
+    "image_url": "/images/rose_gold_chain.png", "description": "A simple 18K gold chain paired with a brilliant solitary pendant."
+  },
+  {
+    "sku": "AU-NEC-07", "name": "Royal Kundan Necklace", "category": "Necklaces", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 95.00, "making_charges": 2200, "stock_count": 4,
+    "image_url": "/images/kundan_choker.png", "description": "Heavy traditional bridal choker set with uncut diamonds and precious stones."
+  },
+  {
+    "sku": "AU-NEC-08", "name": "Antique Choker", "category": "Necklaces", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 75.00, "making_charges": 1800, "stock_count": 5,
+    "image_url": "/images/kundan_choker.png", "description": "A stunning antique finished gold choker."
+  },
+  {
+    "sku": "AU-NEC-09", "name": "Temple Jewellery Necklace", "category": "Necklaces", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 105.00, "making_charges": 2800, "stock_count": 2,
+    "image_url": "/images/placeholder.png", "description": "Divine temple jewelry featuring hand-carved deity motifs.", "badge": "Heritage"
+  },
+  {
+    "sku": "AU-NEC-10", "name": "Pearl & Diamond Necklace", "category": "Necklaces", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 45.00, "making_charges": 1500, "stock_count": 6,
+    "image_url": "/images/diamond_necklace.png", "description": "A seamless blend of south sea pearls and VVS diamonds."
+  },
+  {
+    "sku": "AU-NEC-11", "name": "Silver Link Choker", "category": "Necklaces", "collection": "Gents", "metal": "Silver", "purity": "925", "weight": 55.00, "making_charges": 350, "stock_count": 12,
+    "image_url": "/images/silver_cuban_chain.png", "description": "A modern, heavy silver choker chain."
+  },
+  {
+    "sku": "AU-NEC-12", "name": "Luxury Layered Necklace", "category": "Necklaces", "collection": "Womens", "metal": "Rose Gold", "purity": "18K", "weight": 25.00, "making_charges": 900, "stock_count": 8,
+    "image_url": "/images/rose_gold_chain.png", "description": "Multiple delicate layers of rose gold cascading elegantly."
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "sku": "AU-BGL-01", "name": "Classic Gold Bangles", "category": "Bangles", "collection": "Womens", "metal": "Gold", "purity": "22K", "weight": 24.50, "making_charges": 800, "stock_count": 15,
+    "image_url": "/images/bangle.png", "description": "A set of classic, smooth 22K gold bangles."
+  },
+  {
+    "sku": "AU-BGL-02", "name": "Diamond Tennis Bracelet", "category": "Bangles", "collection": "Bridal", "metal": "Platinum", "purity": "PT950", "weight": 20.00, "making_charges": 1200, "stock_count": 4,
+    "image_url": "/images/bangle.png", "description": "A continuous line of perfectly matched diamonds."
+  },
+  {
+    "sku": "AU-BGL-03", "name": "Antique Temple Bangles", "category": "Bangles", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 45.80, "making_charges": 1800, "stock_count": 3,
+    "image_url": "/images/bangle.png", "description": "Monumental 22K yellow gold bangles hand-crafted."
+  },
+  {
+    "sku": "AU-BGL-04", "name": "Bridal Chudi Set", "category": "Bangles", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 85.00, "making_charges": 2500, "stock_count": 2,
+    "image_url": "/images/bangle.png", "description": "A full set of traditional bridal bangles."
+  },
+  {
+    "sku": "AU-BGL-05", "name": "Temple Motif Kada", "category": "Bangles", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 35.00, "making_charges": 1500, "stock_count": 5,
+    "image_url": "/images/bangle.png", "description": "A thick gold Kada featuring intricate temple motifs."
+  },
+  {
+    "sku": "AU-BGL-06", "name": "Lightweight Gold Bangles", "category": "Bangles", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 12.00, "making_charges": 400, "stock_count": 25,
+    "image_url": "/images/bangle.png", "description": "Thin, lightweight gold bangles perfect for stacking."
+  },
+  {
+    "sku": "AU-BGL-07", "name": "Daily Wear Bangles", "category": "Bangles", "collection": "Womens", "metal": "Rose Gold", "purity": "18K", "weight": 18.00, "making_charges": 600, "stock_count": 12,
+    "image_url": "/images/bangle.png", "description": "Sturdy and elegant rose gold bangles."
+  },
+  {
+    "sku": "AU-BGL-08", "name": "Open Cuff Bangle", "category": "Bangles", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 15.50, "making_charges": 550, "stock_count": 8,
+    "image_url": "/images/bangle.png", "description": "A modern open cuff bangle design."
+  },
+  {
+    "sku": "AU-BGL-09", "name": "Gents Onyx Cuff", "category": "Bangles", "collection": "Gents", "metal": "Silver", "purity": "925", "weight": 34.50, "making_charges": 450, "stock_count": 9,
+    "image_url": "/images/mens_onyx_cuff.png", "description": "A sleek silver cuff embedded with a solid strip of dark onyx.", "badge": "New Arrival"
+  },
+  {
+    "sku": "AU-BGL-10", "name": "Platinum Diamond Bangle", "category": "Bangles", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 22.00, "making_charges": 1100, "stock_count": 6,
+    "image_url": "/images/bangle.png", "description": "A solid platinum bangle scattered with flush-set diamonds."
+  },
+  {
+    "sku": "AU-BGL-11", "name": "Pearl Encrusted Bangle", "category": "Bangles", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 28.00, "making_charges": 900, "stock_count": 7,
+    "image_url": "/images/bangle.png", "description": "A luxurious gold bangle adorned with south sea pearls."
+  },
+  {
+    "sku": "AU-BGL-12", "name": "Silver Charm Bracelet", "category": "Bangles", "collection": "Womens", "metal": "Silver", "purity": "925", "weight": 15.00, "making_charges": 250, "stock_count": 10,
+    "image_url": "/images/silver_charm_bracelet.png", "description": "A silver bracelet with customizable charms.", "badge": "Trending"
+  }
+]
