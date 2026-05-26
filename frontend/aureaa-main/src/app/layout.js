@@ -55,12 +55,25 @@ export default function RootLayout({ children }) {
                   try {
                     return origGet.apply(this, arguments);
                   } catch (e) {
-                    console.warn("Bypassed MediaPipe abortive arguments access check.");
+                    // Suppressed noisy logs during check
                     return [];
                   }
                 };
               }
               return originalDefineProperty(obj, prop, descriptor);
+            };
+
+            // Global filter to permanently silence noisy deprecated WebGL shadow map logs from Three.js/R3F
+            const originalConsoleWarn = console.warn;
+            console.warn = function(...args) {
+              if (args[0] && typeof args[0] === 'string' && (
+                args[0].includes('PCFSoftShadowMap') || 
+                args[0].includes('WebGLShadowMap') ||
+                (args[0].includes('deprecated') && args[0].includes('THREE'))
+              )) {
+                return; // Suppress from console/terminal permanently
+              }
+              originalConsoleWarn.apply(console, args);
             };
           `}
         </Script>

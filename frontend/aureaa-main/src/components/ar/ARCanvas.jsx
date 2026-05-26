@@ -15,7 +15,7 @@ export const ARCanvas = ({ activeProduct, poseData }) => {
           stencil: false,
           depth: true
         }}
-        shadows
+        shadows="percentage"
       >
         {/* Professional three-point studio lighting to maximize luxury reflections */}
         <ambientLight intensity={1.2} />

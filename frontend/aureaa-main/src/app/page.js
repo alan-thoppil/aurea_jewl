@@ -542,11 +542,11 @@ export default function Home() {
                 </button>
 
                 {/* Left Column: Image Showcase */}
-                <div className="w-full md:w-1/2 aspect-square md:aspect-auto bg-zinc-900 border-r border-white/5 relative overflow-hidden flex items-center justify-center">
+                <div className="w-full md:w-1/2 aspect-square md:aspect-auto bg-white border-r border-white/5 relative overflow-hidden flex items-center justify-center">
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700 filter brightness-105 contrast-[1.02]"
+                    className="w-full h-full object-contain p-6 transform hover:scale-105 transition-transform duration-700 filter brightness-105 contrast-[1.02]"
                   />
                   {/* Image shadow mask */}
                   <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] pointer-events-none z-10"></div>
