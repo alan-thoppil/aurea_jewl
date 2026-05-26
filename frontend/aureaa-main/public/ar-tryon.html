@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUREA Ateliers | Luxury Real-Time AR Try-On Salon</title>
+  
+  <!-- MediaPipe CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              400: '#E6C655',
+              500: '#D4AF37',
+              600: '#B89326',
+            }
+          },
+          fontFamily: {
+            serif: ['Playfair Display', 'serif'],
+            sans: ['Montserrat', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Premium glassmorphic panels */
+    .glass-panel {
+      background: rgba(15, 15, 15, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-panel-heavy {
+      background: rgba(10, 10, 10, 0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+    }
+    
+    /* Scrollbar styling */
+    .scrollbar::-webkit-scrollbar {
+      height: 4px;
+      width: 4px;
+    }
+    .scrollbar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(214, 175, 55, 0.3);
+      border-radius: 99px;
+    }
+    .scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(214, 175, 55, 0.6);
+    }
+
+    /* Flash Animation */
+    @keyframes flash {
+      0% { opacity: 0; }
+      20% { opacity: 0.9; }
+      100% { opacity: 0; }
+    }
+    .camera-flash {
+      animation: flash 0.4s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#070707] text-[#F5F5F5] font-sans antialiased overflow-hidden select-none">
+
+  <!-- Fullscreen Shutter Flash overlay -->
+  <div id="shutterFlash" class="fixed inset-0 bg-white z-50 pointer-events-none opacity-0"></div>
+
+  <!-- Luxury Startup Preloader -->
+  <div id="preloader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#070707]">
+    <div class="relative flex items-center justify-center w-28 h-28 mb-8">
+      <!-- Spinning concentric rings -->
+      <div class="absolute inset-0 rounded-full border-2 border-gold-500/10 border-t-gold-500 animate-spin" style="animation-duration: 2s;"></div>
+      <div class="absolute inset-2 rounded-full border-2 border-gold-500/5 border-b-gold-500 animate-spin" style="animation-duration: 1.2s; animation-direction: reverse;"></div>
+      <span class="text-xl font-serif tracking-[0.3em] text-white">A</span>
+    </div>
+    <h2 class="text-gold-500 font-serif text-sm tracking-[0.25em] uppercase animate-pulse mb-2">Configuring Neural Mirrors</h2>
+    <p class="text-zinc-500 text-[10px] tracking-widest uppercase">Preloading luxury high-fidelity assets...</p>
+  </div>
+
+  <div class="relative w-full h-full flex flex-col md:flex-row">
+    
+    <!-- Left Area: Active AR Stage -->
+    <div class="flex-1 relative h-[65vh] md:h-full bg-[#050505] flex items-center justify-center overflow-hidden">
+      
+      <!-- Golden Portrait Frame Borders -->
+      <div class="absolute top-6 left-6 w-14 h-14 border-t-2 border-l-2 border-gold-500/30 z-10 pointer-events-none"></div>
+      <div class="absolute top-6 right-6 w-14 h-14 border-t-2 border-r-2 border-gold-500/30 z-10 pointer-events-none"></div>
+      <div class="absolute bottom-6 left-6 w-14 h-14 border-b-2 border-l-2 border-gold-500/30 z-10 pointer-events-none"></div>
+      <div class="absolute bottom-6 right-6 w-14 h-14 border-b-2 border-r-2 border-gold-500/30 z-10 pointer-events-none"></div>
+      
+      <!-- Brand Watermark Overlay -->
+      <div class="absolute top-8 left-8 z-20 flex flex-col pointer-events-none">
+        <span class="text-2xl font-serif tracking-[0.3em] uppercase text-white font-extralight drop-shadow-md">AUREA</span>
+        <span class="text-[8px] text-gold-500 tracking-[0.2em] uppercase font-bold mt-1 drop-shadow-sm">LIVE AR SALON</span>
+      </div>
+
+      <!-- Realtime WebRTC Video Feed (Hidden from UI, feeds landmarks engine) -->
+      <video id="webcam" playsinline autoplay class="hidden"></video>
+
+      <!-- High-Fidelity Combined AR Canvas Render -->
+      <canvas id="arCanvas" class="w-full h-full object-cover shadow-2xl"></canvas>
+
+      <!-- Alignment Helper Hint Overlay -->
+      <div id="alignmentHint" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-20 px-6 py-3 bg-zinc-950/80 border border-gold-500/20 text-gold-400 rounded-full text-xs font-medium tracking-wide uppercase shadow-2xl backdrop-blur-md hidden transition-all duration-300">
+        Please position your face/hand in the frame
+      </div>
+
+      <!-- Live Stream Indicator Badge -->
+      <div class="absolute top-8 right-8 z-20 flex items-center gap-2.5 px-4 py-2 bg-black/60 border border-white/5 rounded-full backdrop-blur-md shadow-lg">
+        <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+        <span id="fpsIndicator" class="text-[10px] font-mono text-zinc-300 font-semibold tracking-wider">LIVE FEED</span>
+      </div>
+
+      <!-- Shutter Shutter Trigger Button (Float Bottom Right of stage) -->
+      <button onclick="capturePortrait()" class="absolute bottom-8 right-8 z-30 w-16 h-16 flex items-center justify-center bg-gold-500 hover:bg-gold-400 active:scale-95 text-black rounded-full shadow-[0_4px_30px_rgba(212,175,55,0.4)] transition-all cursor-pointer" title="Capture Snapshot">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+      </button>
+
+      <!-- Exit Button (Float Top Left) -->
+      <a href="/studio" class="absolute top-8 left-48 z-20 flex items-center gap-2 px-4 py-2 bg-black/60 border border-white/5 rounded-full hover:border-gold-500/30 text-zinc-400 hover:text-white transition-all backdrop-blur-md text-[10px] tracking-widest uppercase font-semibold cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to Studio
+      </a>
+    </div>
+
+    <!-- Right Area: Luxury Selection Sidebar -->
+    <div class="w-full md:w-[420px] lg:w-[480px] h-[35vh] md:h-full bg-[#0A0A0A] border-t md:border-t-0 md:border-l border-white/5 flex flex-col z-20 shrink-0 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+      
+      <!-- Top Section: Category Navigation -->
+      <div class="p-6 pb-2 border-b border-white/5">
+        <h1 class="font-serif text-2xl text-white mb-4">Ornaments Salon</h1>
+        <div class="flex gap-2 overflow-x-auto scrollbar pb-2">
+          <button onclick="switchCategory('necklace', this)" class="category-tab px-5 py-2 bg-gold-500 text-black font-semibold rounded-full text-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer">Chokers</button>
+          <button onclick="switchCategory('earring', this)" class="category-tab px-5 py-2 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 font-medium rounded-full text-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer">Earrings</button>
+          <button onclick="switchCategory('ring', this)" class="category-tab px-5 py-2 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 font-medium rounded-full text-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer">Rings</button>
+        </div>
+      </div>
+
+      <!-- Mid Section: Scrollable Items List -->
+      <div class="flex-1 overflow-y-auto scrollbar p-6 pt-4">
+        <!-- Live grid of products -->
+        <div id="productGrid" class="grid grid-cols-2 gap-4">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Bottom Section: Selected Product Details Card -->
+      <div id="detailsCard" class="p-6 bg-zinc-950 border-t border-white/5 flex flex-col gap-4">
+        <div class="flex flex-col">
+          <span class="text-[9px] text-gold-500 tracking-[0.2em] uppercase font-bold mb-1">Active Ornament</span>
+          <div class="flex justify-between items-baseline">
+            <h3 id="activeTitle" class="font-serif text-lg text-white font-medium">None Selected</h3>
+            <span id="activePrice" class="text-gold-400 font-semibold text-sm"></span>
+          </div>
+          <span id="activeSku" class="text-[10px] text-zinc-500 font-mono mt-1"></span>
+        </div>
+        <p id="activeDesc" class="text-xs text-zinc-400 leading-relaxed font-light bg-white/[0.02] p-3 rounded-xl border border-white/5">
+          Select an exquisite piece from the catalog above to view real-time AR try-on calibration details.
+        </p>
+        <div class="flex justify-between border-t border-white/5 pt-3 text-[10px] font-mono text-zinc-500">
+          <span id="modelStatus">Model: Unloaded</span>
+          <span id="engineStatus">Ready</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Asset Preloader & AR Wiring scripts -->
+  <script src="/jewellery-loader.js"></script>
+  <script src="/ar-engine.js"></script>
+  
+  <script>
+    let arEngine = null;
+    let currentCategory = 'necklace';
+
+    window.onload = async () => {
+      // 1. Preload all luxury transparency assets
+      try {
+        await window.jewelleryLoader.preloadAll();
+        document.getElementById('preloader').style.display = 'none';
+        console.log("AUREA Front: All luxury PNGs preloaded successfully.");
+      } catch (err) {
+        console.error("AUREA Front: Asset preload failed", err);
+        document.getElementById('preloader').style.display = 'none';
+      }
+
+      // 2. Initialize AR Landmark Engine
+      const video = document.getElementById('webcam');
+      const canvas = document.getElementById('arCanvas');
+      const status = document.getElementById('engineStatus');
+      const hint = document.getElementById('alignmentHint');
+      
+      arEngine = new window.AREngineClass(video, canvas, status, hint);
+      
+      // 3. Start Camera feed loop
+      try {
+        await arEngine.startCamera();
+        // Load first item as default try-on
+        const firstCategoryItem = window.jewelleryLoader.getItemsByCategory('necklace')[0];
+        if (firstCategoryItem) {
+          selectItem(firstCategoryItem.sku);
+        }
+      } catch (e) {
+        console.error("AUREA Front: Camera startup failed", e);
+      }
+
+      // 4. Render initial products list
+      renderProducts();
+    };
+
+    /**
+     * Switch product category list.
+     */
+    function switchCategory(category, buttonEl) {
+      currentCategory = category;
+      
+      // Update UI tabs
+      document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.className = "category-tab px-5 py-2 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 font-medium rounded-full text-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer";
+      });
+      buttonEl.className = "category-tab px-5 py-2 bg-gold-500 text-black font-semibold rounded-full text-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer";
+
+      // Re-render product grid
+      renderProducts();
+
+      // Automatically select the first item in the newly selected category
+      const firstItem = window.jewelleryLoader.getItemsByCategory(category)[0];
+      if (firstItem) {
+        selectItem(firstItem.sku);
+      } else {
+        arEngine.setActiveItem(null);
+        updateDetailsCard(null);
+      }
+    }
+
+    /**
+     * Populate the grid of products for the selected category.
+     */
+    function renderProducts() {
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = '';
+      
+      const items = window.jewelleryLoader.getItemsByCategory(currentCategory);
+      
+      items.forEach(item => {
+        const isActive = arEngine && arEngine.activeItem && arEngine.activeItem.sku === item.sku;
+        
+        const card = document.createElement('div');
+        card.className = `p-3 bg-zinc-900 border rounded-2xl flex flex-col gap-3 transition-all cursor-pointer ${
+          isActive 
+            ? 'border-gold-500 shadow-[0_0_15px_rgba(212,175,55,0.15)] bg-gold-500/5' 
+            : 'border-white/5 hover:border-white/15'
+        }`;
+        card.onclick = () => selectItem(item.sku);
+
+        card.innerHTML = `
+          <div class="relative w-full aspect-square bg-[#0E0E0E] rounded-xl flex items-center justify-center overflow-hidden p-2">
+            <img src="${item.imageUrl}" class="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+            ${isActive ? '<span class="absolute top-2 left-2 px-2 py-0.5 bg-gold-500 text-black text-[7px] font-bold rounded uppercase tracking-wider">Active</span>' : ''}
+          </div>
+          <div class="flex flex-col">
+            <h4 class="text-xs text-white truncate font-medium">${item.name}</h4>
+            <span class="text-[10px] text-gold-400 font-semibold mt-1">${item.price}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    /**
+     * Select a jewellery ornament to try on.
+     */
+    function selectItem(sku) {
+      if (!arEngine) return;
+      arEngine.setActiveItem(sku);
+      
+      const details = window.jewelleryLoader.getDetails(sku);
+      updateDetailsCard(details);
+      
+      // Highlight the active card
+      renderProducts();
+    }
+
+    /**
+     * Update the floating information details block.
+     */
+    function updateDetailsCard(item) {
+      const title = document.getElementById('activeTitle');
+      const price = document.getElementById('activePrice');
+      const sku = document.getElementById('activeSku');
+      const desc = document.getElementById('activeDesc');
+      const modelStatus = document.getElementById('modelStatus');
+
+      if (item) {
+        title.innerText = item.name;
+        price.innerText = item.price;
+        sku.innerText = `SKU: AU-${item.category.toUpperCase()}-${item.sku}`;
+        desc.innerText = item.description;
+        modelStatus.innerText = `Model: ${item.category.toUpperCase()} Active`;
+      } else {
+        title.innerText = "None Selected";
+        price.innerText = "";
+        sku.innerText = "";
+        desc.innerText = "Select an exquisite piece from the catalog above to view real-time AR try-on calibration details.";
+        modelStatus.innerText = "Model: Unloaded";
+      }
+    }
+
+    /**
+     * Trigger camera flash effect and take portrait capture.
+     */
+    function capturePortrait() {
+      // Shutter flash effect
+      const flash = document.getElementById('shutterFlash');
+      flash.className = "fixed inset-0 bg-white z-50 pointer-events-none camera-flash";
+      
+      // Delay capture slightly to sync with peak brightness flash animation
+      setTimeout(() => {
+        if (arEngine) {
+          arEngine.takeSnapshot();
+        }
+      }, 80);
+
+      // Reset flash class
+      setTimeout(() => {
+        flash.className = "fixed inset-0 bg-white z-50 pointer-events-none opacity-0";
+      }, 500);
+    }
+  </script>
+</body>
+</html>

@@ -11,6 +11,25 @@ import { CameraOff, Loader2 } from 'lucide-react';
 // Caching images to avoid reloading every frame
 const imageCache = new Map<string, HTMLImageElement>();
 
+// Helper to map dummy Unsplash image IDs to local transparent PNG files
+const getLocalOverlayUrl = (id: string, category: string): string => {
+  switch (id) {
+    case 'n1': return '/images/diamond_necklace.png';
+    case 'n2': return '/images/kundan_choker.png';
+    case 'e1': return '/images/diamond_chandelier_earrings.png';
+    case 'e2': return '/images/pearl_studs.png';
+    case 'r1': return '/images/ring.png';
+    case 'r2': return '/images/ring.png';
+    case 'b1': return '/images/bangle.png';
+    default:
+      if (category === 'Necklaces') return '/images/diamond_necklace.png';
+      if (category === 'Earrings') return '/images/diamond_chandelier_earrings.png';
+      if (category === 'Rings') return '/images/ring.png';
+      if (category === 'Bangles') return '/images/bangle.png';
+      return '/images/placeholder.png';
+  }
+};
+
 export default function ARCanvas() {
   const { selectedOrnaments } = useStudioStore();
   const { videoRef, startCamera, stopCamera, streamActive, error } = useCamera();
@@ -43,12 +62,12 @@ export default function ARCanvas() {
     trackingData.current = { face: faceLandmarks, hand: handLandmarks, pose: poseLandmarks };
   }, [faceLandmarks, handLandmarks, poseLandmarks]);
 
-  // Preload selected ornament images
+  // Preload selected ornament images using the transparent local PNG paths
   useEffect(() => {
     selectedOrnaments.forEach(ornament => {
       if (!imageCache.has(ornament.id)) {
         const img = new Image();
-        img.src = ornament.imageUrl;
+        img.src = getLocalOverlayUrl(ornament.id, ornament.category);
         img.crossOrigin = "anonymous";
         imageCache.set(ornament.id, img);
       }
@@ -83,85 +102,136 @@ export default function ARCanvas() {
           const img = imageCache.get(ornament.id);
           if (!img || !img.complete) return;
 
-          let cx = 0;
-          let cy = 0;
-          let width = 0;
-          let rotation = 0;
-          let shouldDraw = false;
+          // Apply soft shimmer pulsing
+          const shimmer = Math.sin(Date.now() * 0.003) * 0.08 + 0.92;
+          ctx.globalAlpha = shimmer;
 
-          if (ornament.category === 'Necklaces' && pose && pose.length > 0) {
-            // Pose landmarks: 11 (left shoulder), 12 (right shoulder), 0 (nose)
-            const leftShoulder = pose[11];
-            const rightShoulder = pose[12];
-            
-            // Average shoulder position for neck base
-            const neckX = (leftShoulder.x + rightShoulder.x) / 2;
-            const neckY = (leftShoulder.y + rightShoulder.y) / 2;
-            
-            // Since video is mirrored, we invert X
-            cx = (1 - neckX) * cw;
-            cy = neckY * ch - (ch * 0.05); // slightly above shoulders
-            width = Math.abs(leftShoulder.x - rightShoulder.x) * cw * 0.8;
-            shouldDraw = true;
+          // Add drop shadow
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetX = 3;
+          ctx.shadowOffsetY = 8;
+
+          if (ornament.category === 'Necklaces') {
+            if (face && face.length > 0) {
+              // High-Fidelity Chin and Cheek Mesh Alignment (stabilized)
+              const leftCheek = face[234];
+              const rightCheek = face[454];
+              const chin = face[152];
+              const forehead = face[10];
+              const nose = face[1];
+
+              const dx = rightCheek.x - leftCheek.x;
+              const dy = rightCheek.y - leftCheek.y;
+              const angle = Math.atan2(dy, dx);
+
+              const faceHeight = Math.sqrt(Math.pow(forehead.x - chin.x, 2) + Math.pow(forehead.y - chin.y, 2));
+              const cheekDist = Math.sqrt(Math.pow(rightCheek.x - leftCheek.x, 2) + Math.pow(rightCheek.y - leftCheek.y, 2));
+
+              const cx = ((1 - leftCheek.x) + (1 - rightCheek.x)) / 2 * cw;
+              const cy = chin.y * ch + faceHeight * ch * 0.45;
+              const width = cheekDist * cw * 2.2;
+              const height = width * (img.height / img.width);
+
+              // 3D perspective squish based on yaw
+              const midFaceX = (leftCheek.x + rightCheek.x) / 2;
+              const maxOffset = cheekDist / 2;
+              const yawOffset = (nose.x - midFaceX) / maxOffset;
+              const scaleX = Math.max(0.4, 1 - Math.abs(yawOffset) * 0.45);
+
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.rotate(angle);
+              ctx.scale(scaleX, 1.0);
+              ctx.drawImage(img, -width / 2, 0, width, height);
+              ctx.restore();
+            } else if (pose && pose.length > 0) {
+              // Pose landmarks fallback: 11 (left shoulder), 12 (right shoulder)
+              const leftShoulder = pose[11];
+              const rightShoulder = pose[12];
+              const neckX = (leftShoulder.x + rightShoulder.x) / 2;
+              const neckY = (leftShoulder.y + rightShoulder.y) / 2;
+              const cx = (1 - neckX) * cw;
+              const cy = neckY * ch - (ch * 0.05);
+              const width = Math.abs(leftShoulder.x - rightShoulder.x) * cw * 0.8;
+              const height = width * (img.height / img.width);
+
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.drawImage(img, -width / 2, -height / 2, width, height);
+              ctx.restore();
+            }
           } 
           else if (ornament.category === 'Earrings' && face && face.length > 0) {
-            // FaceMesh landmarks: left ear tragus (164 approx), right ear tragus (390 approx)
-            // Wait, using simplified fallback to cheekbones if exact IDs are wrong
-            const leftEar = face[234]; 
+            // Symmetrical Twin Earlobe Anchors
+            const leftEar = face[234];
             const rightEar = face[454];
+            const faceWidth = Math.sqrt(Math.pow(rightEar.x - leftEar.x, 2) + Math.pow(rightEar.y - leftEar.y, 2));
 
-            // Render twice (left and right) if we want a pair, but the PNG might already be a pair.
-            // If the PNG is a pair, we place it in the center of the face.
-            const nose = face[1];
-            cx = (1 - nose.x) * cw;
-            cy = nose.y * ch + (ch * 0.05);
-            width = Math.abs(leftEar.x - rightEar.x) * cw * 1.5;
-            shouldDraw = true;
+            const earringWidth = faceWidth * cw * 0.15;
+            const height = earringWidth * (img.height / img.width);
+
+            // Left Earlobe
+            const cxL = (1 - leftEar.x) * cw;
+            const cyL = leftEar.y * ch + earringWidth * 0.25;
+
+            ctx.save();
+            ctx.drawImage(img, cxL - earringWidth / 2, cyL, earringWidth, height);
+            ctx.restore();
+
+            // Right Earlobe (mirrored)
+            const cxR = (1 - rightEar.x) * cw;
+            const cyR = rightEar.y * ch + earringWidth * 0.25;
+
+            ctx.save();
+            ctx.translate(cxR, cyR + height / 2);
+            ctx.scale(-1, 1);
+            ctx.drawImage(img, -earringWidth / 2, -height / 2, earringWidth, height);
+            ctx.restore();
           }
           else if (ornament.category === 'Rings' && hand && hand.length > 0) {
-            // Ring finger proximal phalanx is landmark 13, MCP is 13, PIP is 14
-            const ringMcp = hand[13];
-            const ringPip = hand[14];
-            
-            cx = (1 - ringMcp.x) * cw;
-            cy = ringMcp.y * ch;
-            width = Math.abs(ringMcp.x - ringPip.x) * cw * 1.5;
-            
-            // Calculate rotation
-            rotation = Math.atan2(ringPip.y - ringMcp.y, (1 - ringPip.x) - (1 - ringMcp.x));
-            shouldDraw = true;
-          }
-          else if (ornament.category === 'Bangles' && hand && hand.length > 0) {
-            // Wrist is landmark 0
-            const wrist = hand[0];
-            const indexMcp = hand[5]; // to calculate size
-            
-            cx = (1 - wrist.x) * cw;
-            cy = wrist.y * ch;
-            width = Math.abs(wrist.x - indexMcp.x) * cw * 2.5;
-            shouldDraw = true;
-          }
+            // Ring Finger Joint Alignment (13 MCP, 14 PIP)
+            const mcp = hand[13];
+            const pip = hand[14];
 
-          if (shouldDraw) {
-            // Calculate height maintaining aspect ratio
+            const cx = ((1 - mcp.x) + (1 - pip.x)) / 2 * cw;
+            const cy = (mcp.y + pip.y) / 2 * ch;
+
+            const dx = (1 - pip.x) - (1 - mcp.x);
+            const dy = pip.y - mcp.y;
+            const angle = Math.atan2(dy, dx);
+
+            const dist = Math.sqrt(Math.pow((1 - pip.x) - (1 - mcp.x), 2) + Math.pow(pip.y - mcp.y, 2));
+            const width = dist * cw * 1.8;
             const height = width * (img.height / img.width);
-
-            // Add drop shadow
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 5;
-            ctx.shadowOffsetY = 10;
 
             ctx.save();
             ctx.translate(cx, cy);
-            if (rotation !== 0) ctx.rotate(rotation);
-            // Draw image centered
+            ctx.rotate(angle + Math.PI / 2);
             ctx.drawImage(img, -width / 2, -height / 2, width, height);
             ctx.restore();
-            
-            // Reset shadow
-            ctx.shadowColor = 'transparent';
           }
+          else if (ornament.category === 'Bangles' && hand && hand.length > 0) {
+            // Wrist alignment
+            const wrist = hand[0];
+            const indexMcp = hand[5];
+
+            const cx = (1 - wrist.x) * cw;
+            const cy = wrist.y * ch;
+
+            const dist = Math.sqrt(Math.pow((1 - indexMcp.x) - (1 - wrist.x), 2) + Math.pow(indexMcp.y - wrist.y, 2));
+            const width = dist * cw * 2.5;
+            const height = width * (img.height / img.width);
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.drawImage(img, -width / 2, -height / 2, width, height);
+            ctx.restore();
+          }
+
+          // Reset draw properties
+          ctx.shadowColor = 'transparent';
+          ctx.globalAlpha = 1.0;
         });
       }
     }
