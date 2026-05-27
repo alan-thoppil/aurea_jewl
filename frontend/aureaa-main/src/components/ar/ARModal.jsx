@@ -14,7 +14,8 @@ import {
   estimateHeadPose, 
   calculateEarPositions, 
   calculateRingAlignment, 
-  calculateBangleAlignment 
+  calculateBangleAlignment,
+  calculateAnkletAlignment
 } from '@/utils/ar/poseEstimation';
 
 const ARModal = () => {
@@ -46,10 +47,10 @@ const ARModal = () => {
   const lastFrameTimeRef = useRef(performance.now());
   const frameCountRef = useRef(0);
 
-  // Memoize One Euro Filters to persist across renders for premium stabilization
-  const positionFilter = useMemo(() => new OneEuroFilter3D(0.4, 0.015, 1.0), []); // minCutoff, beta
-  const scaleFilter = useMemo(() => new OneEuroFilter(0.6, 0.01, 1.0), []);
-  const rotationFilter = useMemo(() => new OneEuroFilter3D(0.2, 0.005, 1.0), []); // Filters Pitch, Yaw, Roll
+  // Memoize One Euro Filters with responsive parameters to eliminate movement lag
+  const positionFilter = useMemo(() => new OneEuroFilter3D(1.2, 0.12, 1.0), []); // minCutoff, beta
+  const scaleFilter = useMemo(() => new OneEuroFilter(1.5, 0.1, 1.0), []);
+  const rotationFilter = useMemo(() => new OneEuroFilter3D(0.8, 0.08, 1.0), []); // Filters Pitch, Yaw, Roll
 
   useEffect(() => {
     if (initialProduct && arModalOpen) {
@@ -196,14 +197,14 @@ const ARModal = () => {
           const faceWidth = Math.sqrt(Math.pow(lEar.x - rEar.x, 2) + Math.pow(lEar.y - rEar.y, 2));
 
           // Base the visual scale directly on shoulder coordinates if visible, otherwise fall back to face coordinates
-          let targetCoordScale = faceWidth * 1.85;
+          let targetCoordScale = faceWidth * 1.62;
           if (leftShoulder && rightShoulder && leftShoulder.visibility > 0.4 && rightShoulder.visibility > 0.4) {
             const shoulderDist = Math.sqrt(Math.pow(leftShoulder.x - rightShoulder.x, 2) + Math.pow(leftShoulder.y - rightShoulder.y, 2));
-            targetCoordScale = shoulderDist * 0.75; // Sized relative to actual shoulder coordinate distance
+            targetCoordScale = shoulderDist * 0.65; // Sized relative to actual shoulder coordinate distance
           }
 
-          // Lock necklace coordinates to chest/collarbone positioning
-          const neckYOffset = faceWidth * 0.88; 
+          // Lock necklace coordinates to chest/collarbone positioning (pushed a bit further down)
+          const neckYOffset = faceWidth * 1.15; 
           
           rawPosition = {
             x: chin.x,
@@ -228,7 +229,7 @@ const ARModal = () => {
 
           rawPosition = {
             x: (lEar.x + rEar.x) / 2,
-            y: (lEar.y + rEar.y) / 2 + 0.03, // Drop slightly for earlobe look
+            y: (lEar.y + rEar.y) / 2 + 0.07, // Drop to bottom of ear for earlobe look
             z: 0.01
           };
 
@@ -264,6 +265,18 @@ const ARModal = () => {
       }
     }
 
+    // 5. ANKLETS ALIGNMENT (Anchored to ankle joint with leg direction tracking)
+    else if (cat.includes('anklet')) {
+      if (poseLandmarks) {
+        const ankletAlign = calculateAnkletAlignment(poseLandmarks);
+        if (ankletAlign) {
+          rawPosition = ankletAlign.position;
+          rawScale = ankletAlign.scale.x;
+          rawRotation = ankletAlign.rotation;
+        }
+      }
+    }
+
     // C. Advanced One Euro Filtering Layer
     if (rawPosition && rawScale !== null && rawRotation) {
       // Smooth 3D Positions
@@ -292,7 +305,9 @@ const ARModal = () => {
       setPoseData({
         position: filteredPos,
         scale: filteredScale,
-        rotation: filteredRot
+        rotation: filteredRot,
+        faceLandmarks: faceLandmarks || null,
+        poseLandmarks: poseLandmarks || null
       });
 
       // Update interactive metrics for debugging overlays

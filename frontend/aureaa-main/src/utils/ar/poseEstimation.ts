@@ -13,6 +13,7 @@ export interface Landmark {
   x: number;
   y: number;
   z: number;
+  visibility?: number;
 }
 
 /**
@@ -175,14 +176,76 @@ export const calculateBangleAlignment = (
   
   // Wrist width indicator (distance between index base and pinky base)
   const wristWidth = Math.sqrt(Math.pow(index.x - pinky.x, 2) + Math.pow(index.y - pinky.y, 2));
-  const scaleVal = wristWidth * 1.25;
-  const scale = new THREE.Vector3(scaleVal, scaleVal * 0.8, scaleVal); // Slightly elliptical Bangle projection
+  const scaleVal = wristWidth * 1.85;
+  const scale = new THREE.Vector3(scaleVal, scaleVal * 0.85, scaleVal); // Slightly elliptical Bangle projection
 
   const up = new THREE.Vector3(0, 1, 0);
-  const rotation = new THREE.Quaternion().setFromUnitVectors(up, armDir);
+  const baseRotation = new THREE.Quaternion().setFromUnitVectors(up, armDir);
+  
+  // Apply a 90-degree (PI/2) roll rotation to align the bangle perpendicular to the arm vector (wrapping across the wrist)
+  const rollAdjustment = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+  const rotation = baseRotation.multiply(rollAdjustment);
 
   return {
     position: wristPos,
+    rotation,
+    scale
+  };
+};
+
+/**
+ * Calculates aligned anklet coordinates along the ankle/leg vector
+ */
+export const calculateAnkletAlignment = (
+  poseLandmarks: Landmark[]
+): { position: THREE.Vector3; rotation: THREE.Quaternion; scale: THREE.Vector3 } | null => {
+  if (!poseLandmarks || poseLandmarks.length < 33) return null;
+
+  // 27 = Left Ankle, 28 = Right Ankle
+  // 25 = Left Knee, 26 = Right Knee
+  // 29 = Left Heel, 30 = Right Heel
+  const lAnkle = poseLandmarks[27];
+  const rAnkle = poseLandmarks[28];
+  
+  if (!lAnkle && !rAnkle) return null;
+
+  // Track the ankle with higher visibility
+  const isLeft = (lAnkle && rAnkle) 
+    ? (lAnkle.visibility > rAnkle.visibility)
+    : !!lAnkle;
+
+  const ankle = isLeft ? lAnkle : rAnkle;
+  const knee = isLeft ? poseLandmarks[25] : poseLandmarks[26];
+  const heel = isLeft ? poseLandmarks[29] : poseLandmarks[30];
+
+  if (!ankle) return null;
+
+  const anklePos = new THREE.Vector3(ankle.x, ankle.y, ankle.z || 0);
+
+  // Leg direction vector (from knee to ankle)
+  let legDir = new THREE.Vector3(0, -1, 0); // default pointing down
+  if (knee) {
+    legDir = new THREE.Vector3(ankle.x - knee.x, ankle.y - knee.y, (ankle.z || 0) - (knee.z || 0)).normalize();
+  }
+
+  // Ankle scale estimation (based on ankle-to-heel distance, or standard fallback)
+  let scaleVal = 0.08;
+  if (heel) {
+    const ankleToHeel = Math.sqrt(Math.pow(ankle.x - heel.x, 2) + Math.pow(ankle.y - heel.y, 2));
+    scaleVal = ankleToHeel * 2.2; // Proportional scale for comfortable fit
+  }
+
+  const scale = new THREE.Vector3(scaleVal, scaleVal * 0.75, scaleVal); // slightly elliptical ankle projection
+
+  const up = new THREE.Vector3(0, 1, 0);
+  const baseRotation = new THREE.Quaternion().setFromUnitVectors(up, legDir);
+
+  // Apply a 90-degree (PI/2) roll rotation to align the anklet perpendicular to the leg vector
+  const rollAdjustment = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+  const rotation = baseRotation.multiply(rollAdjustment);
+
+  return {
+    position: anklePos,
     rotation,
     scale
   };

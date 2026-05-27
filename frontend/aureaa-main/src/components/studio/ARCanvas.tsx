@@ -20,12 +20,12 @@ const getLocalOverlayUrl = (id: string, category: string): string => {
     case 'e2': return '/images/pearl_studs.png';
     case 'r1': return '/images/ring.png';
     case 'r2': return '/images/ring.png';
-    case 'b1': return '/images/bangle.png';
+    case 'b1': return '/images/bangle_single.png';
     default:
       if (category === 'Necklaces') return '/images/diamond_necklace.png';
       if (category === 'Earrings') return '/images/diamond_chandelier_earrings.png';
       if (category === 'Rings') return '/images/ring.png';
-      if (category === 'Bangles') return '/images/bangle.png';
+      if (category === 'Bangles') return '/images/bangle_single.png';
       return '/images/placeholder.png';
   }
 };
@@ -129,8 +129,8 @@ export default function ARCanvas() {
               const cheekDist = Math.sqrt(Math.pow(rightCheek.x - leftCheek.x, 2) + Math.pow(rightCheek.y - leftCheek.y, 2));
 
               const cx = ((1 - leftCheek.x) + (1 - rightCheek.x)) / 2 * cw;
-              const cy = chin.y * ch + faceHeight * ch * 0.45;
-              const width = cheekDist * cw * 2.2;
+              const cy = chin.y * ch + faceHeight * ch * 0.58;
+              const width = cheekDist * cw * 1.9;
               const height = width * (img.height / img.width);
 
               // 3D perspective squish based on yaw
@@ -152,8 +152,8 @@ export default function ARCanvas() {
               const neckX = (leftShoulder.x + rightShoulder.x) / 2;
               const neckY = (leftShoulder.y + rightShoulder.y) / 2;
               const cx = (1 - neckX) * cw;
-              const cy = neckY * ch - (ch * 0.05);
-              const width = Math.abs(leftShoulder.x - rightShoulder.x) * cw * 0.8;
+              const cy = neckY * ch + (ch * 0.02);
+              const width = Math.abs(leftShoulder.x - rightShoulder.x) * cw * 0.7;
               const height = width * (img.height / img.width);
 
               ctx.save();
@@ -173,7 +173,7 @@ export default function ARCanvas() {
 
             // Left Earlobe
             const cxL = (1 - leftEar.x) * cw;
-            const cyL = leftEar.y * ch + earringWidth * 0.25;
+            const cyL = leftEar.y * ch + earringWidth * 0.58;
 
             ctx.save();
             ctx.drawImage(img, cxL - earringWidth / 2, cyL, earringWidth, height);
@@ -181,7 +181,7 @@ export default function ARCanvas() {
 
             // Right Earlobe (mirrored)
             const cxR = (1 - rightEar.x) * cw;
-            const cyR = rightEar.y * ch + earringWidth * 0.25;
+            const cyR = rightEar.y * ch + earringWidth * 0.58;
 
             ctx.save();
             ctx.translate(cxR, cyR + height / 2);
