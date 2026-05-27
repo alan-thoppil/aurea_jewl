@@ -80,16 +80,27 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // Extract ornament by stripping out high-brightness white backgrounds
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        
-        if (r > 238 && g > 238 && b > 238) {
-          data[i + 3] = 0; // Seamless transparency
-        } else if (r > 215 && g > 215 && b > 215) {
-          data[i + 3] = 100; // Soft edge blending
+      // Detect if the image already contains transparency (e.g. pre-cropped transparent PNG)
+      let hasTransparency = false;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] < 200) {
+          hasTransparency = true;
+          break;
+        }
+      }
+
+      if (!hasTransparency) {
+        // Extract ornament by stripping out high-brightness white backgrounds (for JPGs)
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          if (r > 238 && g > 238 && b > 238) {
+            data[i + 3] = 0; // Seamless transparency
+          } else if (r > 215 && g > 215 && b > 215) {
+            data[i + 3] = 100; // Soft edge blending
+          }
         }
       }
 
@@ -172,12 +183,12 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
           <meshPhysicalMaterial
             map={textureData.texture}
             transparent={true}
-            roughness={activeMaterial?.roughness ?? 0.1}
-            metalness={activeMaterial?.metalness ?? 0.8}
-            clearcoat={activeMaterial?.clearcoat ?? 1.0}
-            clearcoatRoughness={activeMaterial?.clearcoatRoughness ?? 0.05}
-            reflectivity={activeMaterial?.reflectivity ?? 1.0}
-            envMapIntensity={activeMaterial?.envMapIntensity ?? 1.5}
+            roughness={0.2}
+            metalness={0.0} // Restored true color by avoiding dark environment map reflections on 2D texture
+            clearcoat={0.3}
+            clearcoatRoughness={0.1}
+            reflectivity={0.5}
+            envMapIntensity={1.0}
             side={THREE.DoubleSide}
             alphaTest={0.01}
           />

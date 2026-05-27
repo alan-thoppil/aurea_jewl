@@ -39,6 +39,8 @@ const ARModal = () => {
   const [activeLandmarks, setActiveLandmarks] = useState(null);
 
   const containerRef = useRef(null);
+  const compositeCanvasRef = useRef(null);
+  const animationFrameRef = useRef(null);
   
   // Real-time FPS Calculation references
   const lastFrameTimeRef = useRef(performance.now());
@@ -63,6 +65,73 @@ const ARModal = () => {
       setActiveLandmarks(null);
     }
   }, [initialProduct, arModalOpen, positionFilter, scaleFilter, rotationFilter]);
+
+  // Real-time Canvas 2D API compositor loop
+  useEffect(() => {
+    let active = true;
+
+    const drawCompositeFrame = () => {
+      if (!active) return;
+
+      const canvas = compositeCanvasRef.current;
+      const video = videoElement;
+      
+      // Query the actual <canvas> child or the element itself if it is the canvas
+      const rawWebglEl = document.getElementById('ar-webgl-canvas');
+      const webglCanvas = rawWebglEl && rawWebglEl.tagName === 'CANVAS'
+        ? rawWebglEl
+        : (rawWebglEl ? rawWebglEl.querySelector('canvas') : null);
+
+      const isVideoValid = video && video instanceof HTMLVideoElement && video.readyState >= 2;
+      const isCanvasValid = webglCanvas && webglCanvas instanceof HTMLCanvasElement;
+
+      if (canvas && isVideoValid) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const width = video.videoWidth || 1280;
+          const height = video.videoHeight || 720;
+          
+          if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+          }
+
+          // 1. Clear previous content
+          ctx.clearRect(0, 0, width, height);
+
+          // 2. Draw Video Frame (Mirror-flipped horizontally to match natural look)
+          const isMirrored = true;
+          if (isMirrored) {
+            ctx.save();
+            ctx.translate(width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, width, height);
+            ctx.restore();
+          } else {
+            ctx.drawImage(video, 0, 0, width, height);
+          }
+
+          // 3. Draw WebGL jewelry overlay on top
+          if (isCanvasValid) {
+            ctx.drawImage(webglCanvas, 0, 0, width, height);
+          }
+        }
+      }
+
+      animationFrameRef.current = requestAnimationFrame(drawCompositeFrame);
+    };
+
+    if (arModalOpen && videoElement) {
+      animationFrameRef.current = requestAnimationFrame(drawCompositeFrame);
+    }
+
+    return () => {
+      active = false;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [arModalOpen, videoElement]);
 
   const handleLandmarksUpdate = (data) => {
     setIsLoading(false);
@@ -368,6 +437,12 @@ const ARModal = () => {
               {/* 3D WebGL Canvas Layer */}
               <ARCanvas activeProduct={activeProduct} poseData={poseData} />
 
+              {/* Real-time 2D Composite Canvas (Final Display) */}
+              <canvas
+                ref={compositeCanvasRef}
+                className="absolute inset-0 w-full h-full object-cover z-10"
+              />
+
               {/* Brand Watermark Overlay */}
               <div className="absolute top-8 left-8 z-30 pointer-events-none select-none">
                 <span className="text-xl font-serif tracking-[0.25em] uppercase text-white font-extralight drop-shadow-lg">
@@ -382,7 +457,7 @@ const ARModal = () => {
               <ProductSelector activeProduct={activeProduct} setActiveProduct={setActiveProduct} />
               
               {/* High-quality Snapshot camera button */}
-              <ScreenshotCapture targetRef={containerRef} />
+              <ScreenshotCapture compositeCanvasRef={compositeCanvasRef} />
             </div>
 
             {/* Right Column: Premium metadata sidebar */}

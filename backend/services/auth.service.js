@@ -14,7 +14,7 @@ export const loginService = async () => {
 
         id: 1,
 
-        name: 'Alan Tom',
+        name: 'Demo Admin',
 
         role: null,
 

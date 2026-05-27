@@ -23,13 +23,16 @@ export const LandmarkTracker = ({ videoElement, onLandmarksUpdate, enabled = tru
       if (!HolisticConstructor || !CameraConstructor) return false;
 
       if (!window.globalHolisticInstance) {
-        window.globalHolisticInstance = new HolisticConstructor({
+        if (window.globalHolisticLoading) return false;
+
+        window.globalHolisticLoading = true;
+        const instance = new HolisticConstructor({
           locateFile: (file) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${file}`;
           }
         });
 
-        window.globalHolisticInstance.setOptions({
+        instance.setOptions({
           modelComplexity: 1,
           smoothLandmarks: true,
           enableSegmentation: false,
@@ -38,7 +41,7 @@ export const LandmarkTracker = ({ videoElement, onLandmarksUpdate, enabled = tru
           minTrackingConfidence: 0.7,
         });
 
-        window.globalHolisticInstance.onResults((results) => {
+        instance.onResults((results) => {
           if (window.globalOnLandmarksUpdateRef?.current) {
             window.globalOnLandmarksUpdateRef.current({
               poseLandmarks: results.poseLandmarks || null,
@@ -49,13 +52,38 @@ export const LandmarkTracker = ({ videoElement, onLandmarksUpdate, enabled = tru
           }
         });
 
-        window.globalHolisticInstance.initialize().catch(e => console.error("Failed to initialize:", e));
+        instance.initialize()
+          .then(() => {
+            window.globalHolisticInstance = instance;
+            window.globalHolisticLoading = false;
+            window.globalHolisticReady = true;
+            console.log("MediaPipe Holistic WebAssembly assets loaded and ready!");
+          })
+          .catch(e => {
+            window.globalHolisticLoading = false;
+            console.error("Failed to initialize Holistic WASM:", e);
+          });
+
+        return false; // Wait for the asynchronous initialize promise to resolve
+      }
+
+      if (!window.globalHolisticReady) return false;
+
+      // Guard: Ensure the heavy neural model asset pack (.data) has finished loading to prevent WASM aborts
+      const performanceSupported = typeof window !== 'undefined' && window.performance && typeof window.performance.getEntriesByType === 'function';
+      const isDataLoaded = !performanceSupported || window.performance.getEntriesByType('resource').some(
+        r => r.name.includes('holistic_solution_packed_assets.data')
+      );
+      if (!isDataLoaded) {
+        console.log("MediaPipe Holistic WASM compiled, but neural model assets (.data) are still downloading...");
+        return false; // Keep polling until download finishes
       }
 
       // Always update the global reference to the latest React component callback
       window.globalOnLandmarksUpdateRef = onLandmarksUpdateRef;
 
       const holistic = window.globalHolisticInstance;
+      if (!holistic) return false;
 
 
 

@@ -1,22 +1,20 @@
 import React from 'react';
-import html2canvas from 'html2canvas';
-import { Camera, Download } from 'lucide-react';
+import { Camera } from 'lucide-react';
 
-export const ScreenshotCapture = ({ targetRef }) => {
-  const handleCapture = async () => {
-    if (!targetRef.current) return;
+export const ScreenshotCapture = ({ compositeCanvasRef }) => {
+  const handleCapture = () => {
+    const canvas = compositeCanvasRef?.current;
+    if (!canvas) {
+      console.error("Screenshot capture failed: Composite canvas not ready.");
+      return;
+    }
     
     try {
-      const canvas = await html2canvas(targetRef.current, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      });
-      
       const link = document.createElement('a');
       link.download = `AUREA-Virtual-TryOn-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
+      console.log("Screenshot successfully captured via native Canvas 2D API!");
     } catch (error) {
       console.error("Screenshot capture failed:", error);
     }
@@ -32,3 +30,4 @@ export const ScreenshotCapture = ({ targetRef }) => {
     </button>
   );
 };
+

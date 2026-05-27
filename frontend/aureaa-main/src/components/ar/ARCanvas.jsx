@@ -5,15 +5,17 @@ import { JewelleryRenderer } from './JewelleryRenderer';
 
 export const ARCanvas = ({ activeProduct, poseData }) => {
   return (
-    <div className="absolute inset-0 w-full h-full pointer-events-none z-10">
+    <div className="absolute inset-0 w-full h-full pointer-events-none z-10 opacity-0 absolute">
       <Canvas
+        id="ar-webgl-canvas"
         camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 100 }}
         gl={{
           alpha: true,
           antialias: true,
           powerPreference: "high-performance",
           stencil: false,
-          depth: true
+          depth: true,
+          preserveDrawingBuffer: true
         }}
         shadows="percentage"
       >

@@ -34,7 +34,7 @@ export const loginController = async (req, res) => {
 
         const demoUser = {
             id: 1,
-            name: 'Alan Tom',
+            name: 'Demo Admin',
             role: 'admin',
             email: 'admin@aurea.com'
         }

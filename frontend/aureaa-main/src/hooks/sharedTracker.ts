@@ -6,6 +6,8 @@ declare global {
     Holistic: any;
     Camera: any;
     globalHolisticInstance: any;
+    globalHolisticLoading?: boolean;
+    globalHolisticReady?: boolean;
     holisticCallbacks: Set<(results: any) => void>;
     holisticCameraInstance: any;
     holisticActiveVideo: HTMLVideoElement | null;
@@ -37,14 +39,15 @@ export const registerTrackerCallback = (
     if (!HolisticConstructor || !CameraConstructor) return false;
 
     // 2. Initialize the global holistic WASM instance once
-    if (!window.globalHolisticInstance) {
-      window.globalHolisticInstance = new HolisticConstructor({
+    if (!window.globalHolisticInstance && !window.globalHolisticLoading) {
+      window.globalHolisticLoading = true;
+      const instance = new HolisticConstructor({
         locateFile: (file: string) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${file}`;
         }
       });
 
-      window.globalHolisticInstance.setOptions({
+      instance.setOptions({
         modelComplexity: 1,
         smoothLandmarks: true,
         enableSegmentation: false,
@@ -53,15 +56,35 @@ export const registerTrackerCallback = (
         minTrackingConfidence: 0.65,
       });
 
-      window.globalHolisticInstance.onResults((results: any) => {
+      instance.onResults((results: any) => {
         if (window.holisticCallbacks) {
           window.holisticCallbacks.forEach(cb => cb(results));
         }
       });
 
-      window.globalHolisticInstance.initialize().catch((e: any) => 
-        console.error("Failed to initialize Holistic WASM:", e)
-      );
+      instance.initialize()
+        .then(() => {
+          window.globalHolisticInstance = instance;
+          window.globalHolisticLoading = false;
+          window.globalHolisticReady = true;
+          console.log("Shared MediaPipe Holistic WASM loaded successfully!");
+        })
+        .catch((e: any) => {
+          window.globalHolisticLoading = false;
+          console.error("Failed to initialize Shared Holistic WASM:", e);
+        });
+    }
+
+    if (!window.globalHolisticReady) return false;
+
+    // Guard: Ensure the heavy neural model asset pack (.data) has finished loading to prevent WASM aborts
+    const performanceSupported = typeof window !== 'undefined' && window.performance && typeof window.performance.getEntriesByType === 'function';
+    const isDataLoaded = !performanceSupported || window.performance.getEntriesByType('resource').some(
+      (r: any) => r.name.includes('holistic_solution_packed_assets.data')
+    );
+    if (!isDataLoaded) {
+      console.log("Shared MediaPipe Holistic WASM compiled, but neural model assets (.data) are still downloading...");
+      return false; // Keep polling until download finishes
     }
 
     // 3. Start or update the camera stream loop
