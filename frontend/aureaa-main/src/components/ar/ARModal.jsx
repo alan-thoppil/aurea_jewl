@@ -287,16 +287,20 @@ const ARModal = () => {
       const lVisible = lAnkle && (lAnkle.visibility === undefined || lAnkle.visibility > 0.5);
       const rVisible = rAnkle && (rAnkle.visibility === undefined || rAnkle.visibility > 0.5);
       if (!lVisible && !rVisible) {
-        currentGuidance = "Ankles Out of Frame. Please point your camera at your ankles/feet.";
+        currentGuidance = "Ankles not detected. Please point your camera at your ankles/feet.";
       }
     } else if (cat.includes('bangle') || cat.includes('bracelet') || cat.includes('ring')) {
       const hand = rightHandLandmarks || leftHandLandmarks;
       if (!hand) {
-        currentGuidance = "Hand Out of Frame. Please place your hand in front of the camera.";
+        currentGuidance = "Hand not detected. Please place your hand in front of the camera.";
       }
-    } else if (cat.includes('necklace') || cat.includes('earring') || cat.includes('pendant')) {
+    } else if (cat.includes('necklace') || cat.includes('pendant')) {
       if (!faceLandmarks) {
-        currentGuidance = "Face Out of Frame. Please center your face in the camera view.";
+        currentGuidance = "Neck not detected. Please center your face in the camera view.";
+      }
+    } else if (cat.includes('earring')) {
+      if (!faceLandmarks) {
+        currentGuidance = "Ears not detected. Please center your face in the camera view.";
       }
     }
     setGuidanceMessage(currentGuidance);

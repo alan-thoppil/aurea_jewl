@@ -62,6 +62,22 @@ export default function ARCanvas() {
     trackingData.current = { face: faceLandmarks, hand: handLandmarks, pose: poseLandmarks };
   }, [faceLandmarks, handLandmarks, poseLandmarks]);
 
+  // Determine if any selected ornaments have their required body parts missing
+  let guidanceMessage = '';
+  if (streamActive) {
+    const hasHandOrnament = selectedOrnaments.some(o => o.category === 'Rings' || o.category === 'Bangles');
+    const hasNecklaceOrnament = selectedOrnaments.some(o => o.category === 'Necklaces');
+    const hasEarringOrnament = selectedOrnaments.some(o => o.category === 'Earrings');
+
+    if (hasHandOrnament && (!handLandmarks || handLandmarks.length === 0)) {
+      guidanceMessage = "Hand not detected. Please place your hand in front of the camera.";
+    } else if (hasNecklaceOrnament && (!faceLandmarks || faceLandmarks.length === 0) && (!poseLandmarks || poseLandmarks.length === 0)) {
+      guidanceMessage = "Neck not detected. Please center your face/neck in the camera view.";
+    } else if (hasEarringOrnament && (!faceLandmarks || faceLandmarks.length === 0)) {
+      guidanceMessage = "Ears not detected. Please center your face in the camera view.";
+    }
+  }
+
   // Preload selected ornament images using the transparent local PNG paths
   useEffect(() => {
     selectedOrnaments.forEach(ornament => {
@@ -282,6 +298,15 @@ export default function ARCanvas() {
           <div className="absolute top-4 left-4 bg-black/50 backdrop-blur px-3 py-1 rounded-full border border-gold/20 flex items-center gap-2 animate-fadeIn">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
             <span className="text-white text-xs uppercase tracking-widest font-semibold">Live AR</span>
+          </div>
+        )}
+
+        {guidanceMessage && (
+          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30 px-6 py-3 bg-zinc-950/90 backdrop-blur-xl border border-zinc-800 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex items-center gap-3 animate-pulse select-none max-w-[90%] text-center">
+            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></div>
+            <span className="text-[10px] tracking-wider uppercase text-zinc-300 font-bold">
+              {guidanceMessage}
+            </span>
           </div>
         )}
       </div>
