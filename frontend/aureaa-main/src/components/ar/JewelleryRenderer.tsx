@@ -212,7 +212,17 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
 
       // Treat as a combo set ONLY if it has 3+ components AND the smaller components are horizontally off-center (symmetrical earrings).
       // This prevents multi-loop layered chains (e.g. Lightweight Chain) from being incorrectly split into earrings!
+      const nameLower = activeProduct?.name?.toLowerCase() || '';
+      const descLower = activeProduct?.description?.toLowerCase() || '';
+      const isChainOrPendant = nameLower.includes('chain') || 
+                               nameLower.includes('pendant') || 
+                               nameLower.includes('choker') || 
+                               descLower.includes('chain') || 
+                               descLower.includes('pendant') || 
+                               descLower.includes('choker');
+
       const isComboSet = category.includes('necklace') && 
+        !isChainOrPendant &&
         components.length >= 3 && 
         Math.abs(((components[1].minX + components[1].maxX) / 2) - 128) > 16 &&
         Math.abs(((components[2].minX + components[2].maxX) / 2) - 128) > 16;
@@ -323,14 +333,35 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
           }
         }
       } else {
-        // Single ornament. Crop to tightest bounding box to eliminate empty catalog margins
+        // Single ornament. Crop to tightest bounding box of ALL combined components to eliminate empty catalog margins
         setDynamicSetEarrings(false);
-        const comp = components[0] || { minX: 0, maxX: 255, minY: 0, maxY: 255, width: 256, height: 256 };
+        
+        let minX = 255;
+        let maxX = 0;
+        let minY = 255;
+        let maxY = 0;
 
-        const cX = Math.max(0, Math.floor(comp.minX * scaleX));
-        const cY = Math.max(0, Math.floor(comp.minY * scaleY));
-        const cW = Math.min(img.width - cX, Math.ceil(comp.width * scaleX));
-        const cH = Math.min(img.height - cY, Math.ceil(comp.height * scaleY));
+        if (components.length > 0) {
+          components.forEach(c => {
+            if (c.minX < minX) minX = c.minX;
+            if (c.maxX > maxX) maxX = c.maxX;
+            if (c.minY < minY) minY = c.minY;
+            if (c.maxY > maxY) maxY = c.maxY;
+          });
+        } else {
+          minX = 0;
+          maxX = 255;
+          minY = 0;
+          maxY = 255;
+        }
+
+        const compWidth = maxX - minX + 1;
+        const compHeight = maxY - minY + 1;
+
+        const cX = Math.max(0, Math.floor(minX * scaleX));
+        const cY = Math.max(0, Math.floor(minY * scaleY));
+        const cW = Math.min(img.width - cX, Math.ceil(compWidth * scaleX));
+        const cH = Math.min(img.height - cY, Math.ceil(compHeight * scaleY));
 
         const cropCanvas = document.createElement("canvas");
         cropCanvas.width = cW;
@@ -360,7 +391,7 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
     return () => {
       if (textureData?.texture) textureData.texture.dispose();
     };
-  }, [displaySrc, type, category]);
+  }, [displaySrc, type, category, activeProduct]);
 
   // 3. Dynamic R3F Frame Projection Loop
   useFrame(() => {
