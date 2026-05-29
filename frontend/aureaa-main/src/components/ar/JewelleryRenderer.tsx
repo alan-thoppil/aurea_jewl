@@ -214,15 +214,13 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
       // This prevents multi-loop layered chains (e.g. Lightweight Chain) from being incorrectly split into earrings!
       const nameLower = activeProduct?.name?.toLowerCase() || '';
       const descLower = activeProduct?.description?.toLowerCase() || '';
-      const isChainOrPendant = nameLower.includes('chain') || 
-                               nameLower.includes('pendant') || 
-                               nameLower.includes('choker') || 
-                               descLower.includes('chain') || 
-                               descLower.includes('pendant') || 
-                               descLower.includes('choker');
+      
+      // A combo set must explicitly contain 'set' in its name or description (e.g., "necklace set", "choker set").
+      // This prevents layered necklaces (e.g. "Luxury Layered Necklace") or chains from being incorrectly split!
+      const isSetProduct = nameLower.includes('set') || descLower.includes('set');
 
       const isComboSet = category.includes('necklace') && 
-        !isChainOrPendant &&
+        isSetProduct &&
         components.length >= 3 && 
         Math.abs(((components[1].minX + components[1].maxX) / 2) - 128) > 16 &&
         Math.abs(((components[2].minX + components[2].maxX) / 2) - 128) > 16;
