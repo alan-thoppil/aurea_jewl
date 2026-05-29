@@ -13,7 +13,7 @@ export const ProductSelector = ({ activeProduct, setActiveProduct }) => {
     return cat.includes('necklace') || 
            cat.includes('pendant') || 
            cat.includes('earring') || 
-           cat.includes('ring') || 
+           (cat.includes('ring') && !cat.includes('earring')) || 
            cat.includes('bangle');
   });
 

@@ -552,7 +552,7 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
         />
       )}
 
-      {category.includes('ring') && poseData.position && (
+      {category.includes('ring') && !category.includes('earring') && poseData.position && (
         <FingerOccluder
           position={
             new THREE.Vector3(

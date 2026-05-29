@@ -243,7 +243,7 @@ const ARModal = () => {
     }
 
     // 3. RINGS ALIGNMENT (Anchored to joint PIP and finger vector rotation)
-    else if (cat.includes('ring')) {
+    else if (cat.includes('ring') && !cat.includes('earring')) {
       const activeHand = rightHandLandmarks || leftHandLandmarks;
       if (activeHand) {
         const ringAlign = calculateRingAlignment(activeHand);
@@ -289,7 +289,7 @@ const ARModal = () => {
       if (!lVisible && !rVisible) {
         currentGuidance = "Ankles not detected. Please point your camera at your ankles/feet.";
       }
-    } else if (cat.includes('bangle') || cat.includes('bracelet') || cat.includes('ring')) {
+    } else if (cat.includes('bangle') || cat.includes('bracelet') || (cat.includes('ring') && !cat.includes('earring'))) {
       const hand = rightHandLandmarks || leftHandLandmarks;
       if (!hand) {
         currentGuidance = "Hand not detected. Please place your hand in front of the camera.";
