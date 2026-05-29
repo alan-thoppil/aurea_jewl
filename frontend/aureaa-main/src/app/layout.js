@@ -1,6 +1,6 @@
 import Script from "next/script";
 import "./globals.css";
-import { StateProvider } from "@/context/StateContext";
+import Providers from "./providers";
 
 export const metadata = {
   title: "AUREA × JewelPro | Luxury Jewellery Atelier & Enterprise ERP",
@@ -81,9 +81,9 @@ export default function RootLayout({ children }) {
         <Script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js" strategy="beforeInteractive" />
       </head>
       <body className="min-h-full flex flex-col bg-[#0B0B0B] text-[#F5F5F5] font-sans antialiased">
-        <StateProvider>
+        <Providers>
           {children}
-        </StateProvider>
+        </Providers>
       </body>
     </html>
   );
