@@ -59,3 +59,9 @@ tests/
 test/
 **/tests/
 **/test/
+# Blender installation
+blender_pipeline/tools/blender-3.6.12-windows-x64/
+
+# Blender temp files
+*.blend1
+*.blend2
