@@ -2,9 +2,12 @@ import express from 'express'
 
 const router = express.Router()
 import {
-
-    searchProductsController
-
+    searchProductsController,
+    getAllProductsController,
+    getProductByIdController,
+    createProductController,
+    updateProductController,
+    deleteProductController
 } from '../controllers/products.controller.js'
 // ============================================
 // PRODUCTS TEST
@@ -21,40 +24,30 @@ router.get('/test', (req, res) => {
 // GET ALL PRODUCTS
 // ============================================
 
-router.get('/', async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            message: 'Get all products'
-        })
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        })
-    }
-})
+router.get('/', getAllProductsController)
+// ============================================
+// CREATE PRODUCT
+// ============================================
+
+router.post('/', createProductController)
 
 // ============================================
 // GET PRODUCT BY ID
 // ============================================
 
-router.get('/:id', async (req, res) => {
-    try {
-        const { id } = req.params
+router.get('/:id', getProductByIdController)
 
-        res.json({
-            success: true,
-            productId: id,
-            message: 'Get product by ID'
-        })
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        })
-    }
-})
+// ============================================
+// UPDATE PRODUCT
+// ============================================
+
+router.put('/:id', updateProductController)
+
+// ============================================
+// DELETE PRODUCT
+// ============================================
+
+router.delete('/:id', deleteProductController)
 // ============================================
 // SEARCH PRODUCTS
 // ============================================

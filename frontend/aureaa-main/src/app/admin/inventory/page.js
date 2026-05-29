@@ -38,6 +38,7 @@ export default function InventoryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedSku, setSelectedSku] = useState("");
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const {
     register: registerInv,
@@ -129,6 +130,36 @@ export default function InventoryPage() {
     const matchesCat = activeCategory === "All" || p.category === activeCategory;
     return matchesSearch && matchesCat;
   });
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsProcessingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/admin/process-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setInvValue("image_url", data.url, { shouldValidate: true });
+        alert("Image processed and background removed successfully!");
+      } else {
+        alert(data.error || "Failed to process image.");
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      alert("An error occurred during image processing.");
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 text-left animate-fadeIn">
@@ -369,11 +400,26 @@ export default function InventoryPage() {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] uppercase text-white/50 tracking-wider">High-Res Image URL *</label>
-            <input
-              type="url"
-              {...registerInv("image_url")}
-              className={`w-full bg-black border ${invErrors.image_url ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
-            />
+            <div className="flex gap-2">
+              <input
+                type="url"
+                {...registerInv("image_url")}
+                placeholder="https://..."
+                className={`flex-1 bg-black border ${invErrors.image_url ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
+              />
+              <div className="relative shrink-0 w-36 h-[42px]">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isProcessingImage}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                />
+                <div className={`w-full h-full flex items-center justify-center border border-gold-500/50 bg-gold-500/10 text-gold-300 text-[9px] font-bold tracking-widest uppercase transition-all ${isProcessingImage ? 'opacity-50' : 'hover:bg-gold-500 hover:text-black cursor-pointer'}`}>
+                  {isProcessingImage ? 'Processing...' : 'Upload Image'}
+                </div>
+              </div>
+            </div>
             {invErrors.image_url && <span className="text-red-400 text-[9px] uppercase">{invErrors.image_url.message}</span>}
           </div>
 

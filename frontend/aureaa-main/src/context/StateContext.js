@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 const StateContext = createContext();
 
 // Seed initial luxury products
@@ -147,6 +147,7 @@ const INITIAL_REPAIRS = [
 ];
 
 export function StateProvider({ children }) {
+  const queryClient = useQueryClient();
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
   const [ledger, setLedger] = useState(INITIAL_LEDGER);
@@ -162,6 +163,24 @@ export function StateProvider({ children }) {
     "24K": 7620, "22K": 6985, "18K": 5715, "14K": 4450, "PT950": 3100, "925": 85
   });
 
+  // Fetch products from Express Backend
+  const { data: fetchedProducts } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const res = await fetch("http://localhost:5000/api/products");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const json = await res.json();
+      return json.data || [];
+    }
+  });
+
+  // Sync fetched products with local state for backward compatibility
+  useEffect(() => {
+    if (fetchedProducts && fetchedProducts.length > 0) {
+      setProducts(fetchedProducts);
+    }
+  }, [fetchedProducts]);
+
   useEffect(() => {
     // Check local storage persistence on load
     if (typeof window !== "undefined") {
@@ -174,9 +193,8 @@ export function StateProvider({ children }) {
       const storedSubscribers = localStorage.getItem("aurea_subscribers");
 
       setTimeout(() => {
-        if (storedProducts) {
+        if (storedProducts && (!fetchedProducts || fetchedProducts.length === 0)) {
           const parsed = JSON.parse(storedProducts);
-          // Force migration if new products were added to the initial seed
           if (parsed.length < INITIAL_PRODUCTS.length) {
             setProducts(INITIAL_PRODUCTS);
           } else {
@@ -500,18 +518,56 @@ export function StateProvider({ children }) {
   };
 
   // INVENTORY WORKFLOWS
+  const addProductMutation = useMutation({
+    mutationFn: async (newItem) => {
+      const res = await fetch("http://localhost:5000/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newItem)
+      });
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ sku, updatedItem }) => {
+      // Using SKU as the identifier for now based on the frontend structure
+      const res = await fetch(`http://localhost:5000/api/products/${sku}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedItem)
+      });
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+  });
+
+  const removeProductMutation = useMutation({
+    mutationFn: async (sku) => {
+      const res = await fetch(`http://localhost:5000/api/products/${sku}`, {
+        method: "DELETE"
+      });
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+  });
+
   const addInventoryItem = (newItem) => {
-    setProducts((prev) => [...prev, newItem]);
+    setProducts((prev) => [...prev, newItem]); // Optimistic update
+    addProductMutation.mutate(newItem);
   };
 
   const updateInventoryItem = (sku, updatedItem) => {
     setProducts((prev) =>
       prev.map((item) => (item.sku === sku ? { ...item, ...updatedItem } : item))
-    );
+    ); // Optimistic update
+    updateProductMutation.mutate({ sku, updatedItem });
   };
 
   const removeInventoryItem = (sku) => {
-    setProducts((prev) => prev.filter((item) => item.sku !== sku));
+    setProducts((prev) => prev.filter((item) => item.sku !== sku)); // Optimistic update
+    removeProductMutation.mutate(sku);
   };
 
   // CRM CUSTOMER MANAGEMENT
