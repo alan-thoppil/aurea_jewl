@@ -210,8 +210,14 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
       const scaleX = img.width / 256;
       const scaleY = img.height / 256;
 
-      // Handle multi-component necklace set try-ons (e.g. Necklace + Earrings)
-      if (category.includes('necklace') && components.length >= 3) {
+      // Treat as a combo set ONLY if it has 3+ components AND the smaller components are horizontally off-center (symmetrical earrings).
+      // This prevents multi-loop layered chains (e.g. Lightweight Chain) from being incorrectly split into earrings!
+      const isComboSet = category.includes('necklace') && 
+        components.length >= 3 && 
+        Math.abs(((components[1].minX + components[1].maxX) / 2) - 128) > 16 &&
+        Math.abs(((components[2].minX + components[2].maxX) / 2) - 128) > 16;
+
+      if (isComboSet) {
         console.log("AUREA AR - CCA: Multi-component SET detected from image islands!");
 
         const mainComp = components[0]; // Necklace is largest component

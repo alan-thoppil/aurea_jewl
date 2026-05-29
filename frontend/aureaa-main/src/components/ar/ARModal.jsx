@@ -25,6 +25,7 @@ const ARModal = () => {
   const [activeProduct, setActiveProduct] = useState(null);
   const [poseData, setPoseData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [guidanceMessage, setGuidanceMessage] = useState(null);
 
   // Developer Debugging States
   const [debugEnabled, setDebugEnabled] = useState(false);
@@ -58,12 +59,14 @@ const ARModal = () => {
     }
     if (arModalOpen) {
       setIsLoading(true);
+      setGuidanceMessage(null);
     } else {
       setVideoElement(null);
       positionFilter.reset();
       scaleFilter.reset();
       rotationFilter.reset();
       setActiveLandmarks(null);
+      setGuidanceMessage(null);
     }
   }, [initialProduct, arModalOpen, positionFilter, scaleFilter, rotationFilter]);
 
@@ -276,6 +279,27 @@ const ARModal = () => {
         }
       }
     }
+    // Guidance Message calculation to prevent black screen when joints are out of frame
+    let currentGuidance = null;
+    if (cat.includes('anklet')) {
+      const lAnkle = poseLandmarks ? poseLandmarks[27] : null;
+      const rAnkle = poseLandmarks ? poseLandmarks[28] : null;
+      const lVisible = lAnkle && (lAnkle.visibility === undefined || lAnkle.visibility > 0.5);
+      const rVisible = rAnkle && (rAnkle.visibility === undefined || rAnkle.visibility > 0.5);
+      if (!lVisible && !rVisible) {
+        currentGuidance = "Ankles Out of Frame. Please point your camera at your ankles/feet.";
+      }
+    } else if (cat.includes('bangle') || cat.includes('bracelet') || cat.includes('ring')) {
+      const hand = rightHandLandmarks || leftHandLandmarks;
+      if (!hand) {
+        currentGuidance = "Hand Out of Frame. Please place your hand in front of the camera.";
+      }
+    } else if (cat.includes('necklace') || cat.includes('earring') || cat.includes('pendant')) {
+      if (!faceLandmarks) {
+        currentGuidance = "Face Out of Frame. Please center your face in the camera view.";
+      }
+    }
+    setGuidanceMessage(currentGuidance);
 
     // C. Advanced One Euro Filtering Layer
     if (rawPosition && rawScale !== null && rawRotation) {
@@ -322,6 +346,8 @@ const ARModal = () => {
           trackingConfidence: faceLandmarks ? 98 : (poseLandmarks ? 75 : 0)
         });
       }
+    } else {
+      setPoseData(null);
     }
   };
 
@@ -408,7 +434,15 @@ const ARModal = () => {
                   ))}
                 </svg>
               )}
-
+              {/* Guidance Message Banner */}
+              {guidanceMessage && !isLoading && (
+                <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-30 px-6 py-3 bg-zinc-950/90 backdrop-blur-xl border border-zinc-800 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex items-center gap-3 animate-pulse select-none">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></div>
+                  <span className="text-[10px] tracking-wider uppercase text-zinc-300 font-bold">
+                    {guidanceMessage}
+                  </span>
+                </div>
+              )}
               {/* Interactive Debug Card Overlay */}
               {debugEnabled && (
                 <div className="absolute bottom-6 left-6 z-50 p-4 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl w-64 shadow-2xl font-mono text-[10px] text-zinc-400 flex flex-col gap-2">
