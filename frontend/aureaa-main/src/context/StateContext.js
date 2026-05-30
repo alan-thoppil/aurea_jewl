@@ -176,9 +176,10 @@ export function StateProvider({ children }) {
 
   // Sync fetched products with local state for backward compatibility
   useEffect(() => {
-    if (fetchedProducts && fetchedProducts.length > 0) {
-      setProducts(fetchedProducts);
-    }
+    // Disabled to show old local images
+    // if (fetchedProducts && fetchedProducts.length > 0) {
+    //   setProducts(fetchedProducts);
+    // }
   }, [fetchedProducts]);
 
   useEffect(() => {
@@ -193,14 +194,16 @@ export function StateProvider({ children }) {
       const storedSubscribers = localStorage.getItem("aurea_subscribers");
 
       setTimeout(() => {
-        if (storedProducts && (!fetchedProducts || fetchedProducts.length === 0)) {
-          const parsed = JSON.parse(storedProducts);
-          if (parsed.length < INITIAL_PRODUCTS.length) {
-            setProducts(INITIAL_PRODUCTS);
-          } else {
-            setProducts(parsed);
-          }
-        }
+        // Bypass local storage to force old images
+        // if (storedProducts && (!fetchedProducts || fetchedProducts.length === 0)) {
+        //   const parsed = JSON.parse(storedProducts);
+        //   if (parsed.length < INITIAL_PRODUCTS.length) {
+        //     setProducts(INITIAL_PRODUCTS);
+        //   } else {
+        //     setProducts(parsed);
+        //   }
+        // }
+        setProducts(INITIAL_PRODUCTS);
         if (storedCustomers) setCustomers(JSON.parse(storedCustomers));
         if (storedLedger) setLedger(JSON.parse(storedLedger));
         if (storedSchemes) setGoldSchemes(JSON.parse(storedSchemes));
