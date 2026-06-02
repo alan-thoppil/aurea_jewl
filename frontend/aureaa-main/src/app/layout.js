@@ -63,18 +63,38 @@ export default function RootLayout({ children }) {
               return originalDefineProperty(obj, prop, descriptor);
             };
 
-            // Global filter to permanently silence noisy deprecated WebGL shadow map logs from Three.js/R3F
-            const originalConsoleWarn = console.warn;
-            console.warn = function(...args) {
-              if (args[0] && typeof args[0] === 'string' && (
-                args[0].includes('PCFSoftShadowMap') || 
-                args[0].includes('WebGLShadowMap') ||
-                (args[0].includes('deprecated') && args[0].includes('THREE'))
-              )) {
-                return; // Suppress from console/terminal permanently
-              }
-              originalConsoleWarn.apply(console, args);
+            // Global filter to permanently silence noisy deprecated WebGL/Three.js/R3F console logs
+            const silenceConsoleNoise = () => {
+              const noiseKeywords = [
+                'THREE.Clock',
+                'Clock: This module has been deprecated',
+                'PCFSoftShadowMap',
+                'WebGLShadowMap',
+                'gl_context_webgl.cc',
+                'gl_context.cc',
+                'Successfully created a WebGL context',
+                'GL version:',
+                'OpenGL error checking is disabled'
+              ];
+
+              const filterMethod = (methodName) => {
+                const original = console[methodName];
+                if (!original) return;
+                console[methodName] = function(...args) {
+                  if (args[0] && typeof args[0] === 'string') {
+                    const msg = args[0];
+                    const isNoise = noiseKeywords.some(keyword => msg.includes(keyword)) ||
+                      (msg.includes('deprecated') && (msg.includes('THREE') || msg.includes('Clock')));
+                    if (isNoise) return; // Suppress from console permanently
+                  }
+                  original.apply(console, args);
+                };
+              };
+
+              ['log', 'info', 'warn', 'error'].forEach(filterMethod);
             };
+
+            silenceConsoleNoise();
           `}
         </Script>
         <Script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" strategy="beforeInteractive" />
