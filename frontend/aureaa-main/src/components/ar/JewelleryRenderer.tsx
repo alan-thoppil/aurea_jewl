@@ -212,18 +212,20 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
 
       // Treat as a combo set ONLY if it has 3+ components AND the smaller components are horizontally off-center (symmetrical earrings).
       // This prevents multi-loop layered chains (e.g. Lightweight Chain) from being incorrectly split into earrings!
-      const nameLower = activeProduct?.name?.toLowerCase() || '';
-      const descLower = activeProduct?.description?.toLowerCase() || '';
-      
-      // A combo set must explicitly contain 'set' in its name or description (e.g., "necklace set", "choker set").
-      // This prevents layered necklaces (e.g. "Luxury Layered Necklace") or chains from being incorrectly split!
-      const isSetProduct = nameLower.includes('set') || descLower.includes('set');
-
+      // Treat as a combo set ONLY if it has 3+ components AND the smaller components are symmetrical earrings.
+      // This prevents multi-loop layered chains (e.g. Lightweight Chain) from being incorrectly split into earrings!
       const isComboSet = category.includes('necklace') && 
-        isSetProduct &&
-        components.length >= 3 && 
-        Math.abs(((components[1].minX + components[1].maxX) / 2) - 128) > 16 &&
-        Math.abs(((components[2].minX + components[2].maxX) / 2) - 128) > 16;
+        components.length >= 3 && (() => {
+          const center1 = (components[1].minX + components[1].maxX) / 2;
+          const center2 = (components[2].minX + components[2].maxX) / 2;
+          return (
+            (center1 - 128) * (center2 - 128) < 0 &&
+            Math.abs(Math.abs(center1 - 128) - Math.abs(center2 - 128)) < 12 &&
+            Math.abs(components[1].minY - components[2].minY) < 12 &&
+            Math.abs(components[1].width - components[2].width) < 10 &&
+            Math.abs(components[1].height - components[2].height) < 10
+          );
+        })();
 
       if (isComboSet) {
         console.log("AUREA AR - CCA: Multi-component SET detected from image islands!");
@@ -328,6 +330,53 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
             setEarringTexture(earTex);
             setDynamicSetEarrings(true);
             console.log("AUREA AR - CCA: Segmented and squared earring texture from set photo.");
+          }
+        }
+      } else if (category.includes('earring') && components.length >= 2 && (() => {
+        const center0 = (components[0].minX + components[0].maxX) / 2;
+        const center1 = (components[1].minX + components[1].maxX) / 2;
+        return (center0 - 128) * (center1 - 128) < 0;
+      })()) {
+        // Symmetrical earring pair detected. Crop ONLY components[0] (one of the earrings)
+        setDynamicSetEarrings(false);
+        console.log("AUREA AR - CCA: Symmetrical earring pair detected, cropping single earring.");
+
+        const earringComp = components[0];
+        const earX = Math.max(0, Math.floor(earringComp.minX * scaleX));
+        const earY = Math.max(0, Math.floor(earringComp.minY * scaleY));
+        const earW = Math.min(img.width - earX, Math.ceil(earringComp.width * scaleX));
+        const earH = Math.min(img.height - earY, Math.ceil(earringComp.height * scaleY));
+
+        const earCanvas = document.createElement("canvas");
+        earCanvas.width = earW;
+        earCanvas.height = earH;
+        const earCtx = earCanvas.getContext("2d");
+        if (earCtx) {
+          earCtx.drawImage(img, earX, earY, earW, earH, 0, 0, earW, earH);
+          keyOutBackground(earCtx, earW, earH);
+
+          // Center the earring inside a square transparent canvas to prevent stretching in Three.js
+          const sqSize = Math.max(earW, earH);
+          const sqCanvas = document.createElement("canvas");
+          sqCanvas.width = sqSize;
+          sqCanvas.height = sqSize;
+          const sqCtx = sqCanvas.getContext("2d");
+          if (sqCtx) {
+            const offsetX = (sqSize - earW) / 2;
+            const offsetY = (sqSize - earH) / 2;
+            sqCtx.drawImage(earCanvas, offsetX, offsetY);
+
+            const earTex = new THREE.CanvasTexture(sqCanvas);
+            earTex.colorSpace = THREE.SRGBColorSpace;
+            earTex.minFilter = THREE.LinearFilter;
+            
+            const cropScale = sqSize / img.width;
+            setTextureData({ 
+              texture: earTex, 
+              aspect: 1.0,
+              cropScale: cropScale
+            });
+            console.log("AUREA AR - CCA: Segmented and squared earring texture.");
           }
         }
       } else {

@@ -405,6 +405,37 @@ class AREngine {
     );
 
     this.ctx.restore();
+
+    // If this is a set, draw the associated earrings on the ears
+    const earImg = window.jewelleryLoader.getImage(this.activeItem.sku + '_earring');
+    if (earImg) {
+      const faceWidth = this.getDistance(smooth.leftCheek, smooth.rightCheek);
+      const earringWidth = faceWidth * 0.15;
+      const earringHeight = earringWidth; // squared earring
+      
+      const leftLobeY = smooth.leftCheek.y + earringWidth * 0.25;
+      const rightLobeY = smooth.rightCheek.y + earringWidth * 0.25;
+      
+      // Draw Left Earring
+      this.ctx.save();
+      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      this.ctx.shadowBlur = 6;
+      this.ctx.shadowOffsetY = 8;
+      this.ctx.shadowOffsetX = 3;
+      this.ctx.drawImage(earImg, smooth.leftCheek.x - earringWidth / 2, leftLobeY, earringWidth, earringHeight);
+      this.ctx.restore();
+
+      // Draw Right Earring (Mirrored)
+      this.ctx.save();
+      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      this.ctx.shadowBlur = 6;
+      this.ctx.shadowOffsetY = 8;
+      this.ctx.shadowOffsetX = -3;
+      this.ctx.translate(smooth.rightCheek.x, rightLobeY + earringHeight / 2);
+      this.ctx.scale(-1, 1);
+      this.ctx.drawImage(earImg, -earringWidth / 2, -earringHeight / 2, earringWidth, earringHeight);
+      this.ctx.restore();
+    }
   }
 
   /**
