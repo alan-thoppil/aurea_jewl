@@ -496,7 +496,7 @@ export default function Home() {
               <Link href="#collection" className="hover:text-gold-300 transition-colors">Catalogues</Link>
               <button onClick={() => handleOpenAR()} suppressHydrationWarning className="hover:text-gold-300 transition-colors text-left">Virtual Try-On</button>
               <Link href="#trust" className="hover:text-gold-300 transition-colors">Certifications</Link>
-              <Link href="/admin" className="text-gold-500/80 hover:text-gold-300 font-semibold transition-colors">ERP Admin portal</Link>
+
             </div>
 
             <div className="flex flex-col gap-3">

@@ -66,13 +66,7 @@ export default function CustomerNavbar({ onCartClick }) {
           <Link href="/#testimonials" className="text-sm tracking-widest text-white/80 hover:text-gold-300 transition-colors uppercase">
             Reviews
           </Link>
-          <Link
-            href="/admin"
-            className="flex items-center gap-2 text-xs tracking-widest text-gold-500/80 hover:text-gold-300 border border-gold-500/20 hover:border-gold-500/40 px-3 py-1.5 transition-colors uppercase bg-gold-500/5"
-          >
-            <LayoutDashboard size={13} />
-            ERP Admin
-          </Link>
+
         </div>
 
         {/* Utility Buttons */}
@@ -147,14 +141,7 @@ export default function CustomerNavbar({ onCartClick }) {
             <Sparkles size={13} />
             Try AR Studio
           </button>
-          <Link
-            href="/admin"
-            onClick={() => setMenuOpen(false)}
-            className="flex items-center justify-center gap-2 px-5 py-3 text-xs tracking-widest font-medium uppercase border border-white/10 bg-white/5 text-white/80 hover:text-white transition-all"
-          >
-            <LayoutDashboard size={13} />
-            ERP Admin Dashboard
-          </Link>
+
         </div>
       )}
     </nav>

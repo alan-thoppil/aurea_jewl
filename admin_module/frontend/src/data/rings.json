@@ -1,0 +1,50 @@
+[
+  {
+    "sku": "AU-RNG-01", "name": "Solitaire Diamond Ring", "category": "Rings", "collection": "Bridal", "metal": "Platinum", "purity": "PT950", "weight": 4.80, "making_charges": 650, "stock_count": 8,
+    "image_url": "/assets/jewellery/rings/solitaire_diamond_ring.png", "description": "An exquisite platinum ring crowned with a brilliant-cut solitaire diamond.", "badge": "Best Seller"
+  },
+  {
+    "sku": "AU-RNG-02", "name": "Imperial Princess Cut Ring", "category": "Rings", "collection": "Bridal", "metal": "Gold", "purity": "18K", "weight": 5.20, "making_charges": 700, "stock_count": 5,
+    "image_url": "/assets/jewellery/rings/princess_cut_ring.png", "description": "A stunning 18K gold ring with a princess cut center diamond."
+  },
+  {
+    "sku": "AU-RNG-03", "name": "Radiant Halo Ring", "category": "Rings", "collection": "Womens", "metal": "Rose Gold", "purity": "18K", "weight": 3.90, "making_charges": 550, "stock_count": 12,
+    "image_url": "/images/ring.png", "description": "A sparkling center diamond surrounded by a halo of brilliant micro-diamonds."
+  },
+  {
+    "sku": "AU-RNG-04", "name": "Eternal Engagement Ring", "category": "Rings", "collection": "Bridal", "metal": "Platinum", "purity": "PT950", "weight": 6.10, "making_charges": 800, "stock_count": 4,
+    "image_url": "/assets/jewellery/rings/solitaire_diamond_ring.png", "description": "The perfect engagement ring with an impeccable clarity diamond.", "badge": "New Arrival"
+  },
+  {
+    "sku": "AU-RNG-05", "name": "Classic Platinum Band", "category": "Rings", "collection": "Gents", "metal": "Platinum", "purity": "PT950", "weight": 8.50, "making_charges": 450, "stock_count": 15,
+    "image_url": "/images/ring.png", "description": "A bold and heavy solid platinum band with a brushed finish."
+  },
+  {
+    "sku": "AU-RNG-06", "name": "Victorian Vintage Ring", "category": "Rings", "collection": "Womens", "metal": "Gold", "purity": "22K", "weight": 7.20, "making_charges": 900, "stock_count": 3,
+    "image_url": "/assets/jewellery/rings/princess_cut_ring.png", "description": "Intricate antique Victorian era styling crafted in pure 22K gold."
+  },
+  {
+    "sku": "AU-RNG-07", "name": "Minimalist Gold Ring", "category": "Rings", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 2.50, "making_charges": 300, "stock_count": 25,
+    "image_url": "/images/ring.png", "description": "A simple, elegant daily wear gold ring."
+  },
+  {
+    "sku": "AU-RNG-08", "name": "Majestic Bridal Ring Set", "category": "Rings", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 12.00, "making_charges": 1500, "stock_count": 2,
+    "image_url": "/assets/jewellery/rings/princess_cut_ring.png", "description": "A heavy traditional bridal ring with uncut diamonds.", "badge": "Premium"
+  },
+  {
+    "sku": "AU-RNG-09", "name": "Emerald Cut Diamond Ring", "category": "Rings", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 5.80, "making_charges": 750, "stock_count": 6,
+    "image_url": "/assets/jewellery/rings/solitaire_diamond_ring.png", "description": "A sophisticated emerald cut diamond set in bright platinum."
+  },
+  {
+    "sku": "AU-RNG-10", "name": "Romantic Heart Diamond Ring", "category": "Rings", "collection": "Womens", "metal": "Rose Gold", "purity": "18K", "weight": 4.10, "making_charges": 600, "stock_count": 8,
+    "image_url": "/images/ring.png", "description": "A flawless heart-shaped diamond encased in warm rose gold."
+  },
+  {
+    "sku": "AU-RNG-11", "name": "Diamond Infinity Ring", "category": "Rings", "collection": "Womens", "metal": "Silver", "purity": "925", "weight": 3.80, "making_charges": 250, "stock_count": 18,
+    "image_url": "/assets/jewellery/rings/princess_cut_ring.png", "description": "An infinity loop design encrusted with cubic zirconia."
+  },
+  {
+    "sku": "AU-RNG-12", "name": "The Royal Signet Ring", "category": "Rings", "collection": "Gents", "metal": "Gold", "purity": "22K", "weight": 14.50, "making_charges": 850, "stock_count": 5,
+    "image_url": "/images/ring.png", "description": "A heavy gold signet ring fit for royalty.", "badge": "Exclusive"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "sku": "AU-ANK-01", "name": "Silver Traditional Anklet", "category": "Anklets", "collection": "Womens", "metal": "Silver", "purity": "925", "weight": 25.00, "making_charges": 250, "stock_count": 15,
+    "image_url": "/images/anklet.png", "description": "A heavy traditional 925 silver anklet."
+  },
+  {
+    "sku": "AU-ANK-02", "name": "Stone Studded Anklet", "category": "Anklets", "collection": "Womens", "metal": "Silver", "purity": "925", "weight": 14.20, "making_charges": 150, "stock_count": 12,
+    "image_url": "/images/anklet.png", "description": "Dainty 925 sterling silver anklet chains set with high-grade cubic zirconia drops."
+  },
+  {
+    "sku": "AU-ANK-03", "name": "Bridal Gold Anklet", "category": "Anklets", "collection": "Bridal", "metal": "Gold", "purity": "22K", "weight": 45.00, "making_charges": 1200, "stock_count": 4,
+    "image_url": "/images/anklet.png", "description": "Heavy pure 22K gold anklets designed for the majestic bride.", "badge": "Exclusive"
+  },
+  {
+    "sku": "AU-ANK-04", "name": "Lightweight Chain Anklet", "category": "Anklets", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 8.50, "making_charges": 300, "stock_count": 25,
+    "image_url": "/images/anklet.png", "description": "A delicate and minimal gold chain for the ankle."
+  },
+  {
+    "sku": "AU-ANK-05", "name": "Rose Gold Charm Anklet", "category": "Anklets", "collection": "Womens", "metal": "Rose Gold", "purity": "18K", "weight": 12.00, "making_charges": 450, "stock_count": 10,
+    "image_url": "/images/anklet.png", "description": "A beautiful rose gold anklet featuring tiny dangling star charms."
+  },
+  {
+    "sku": "AU-ANK-06", "name": "Luxury Diamond Anklet", "category": "Anklets", "collection": "Bridal", "metal": "Platinum", "purity": "PT950", "weight": 18.00, "making_charges": 900, "stock_count": 5,
+    "image_url": "/images/anklet.png", "description": "A breathtaking platinum anklet encrusted with real diamonds.", "badge": "Premium"
+  },
+  {
+    "sku": "AU-ANK-07", "name": "Layered Silver Anklet", "category": "Anklets", "collection": "Womens", "metal": "Silver", "purity": "925", "weight": 35.00, "making_charges": 400, "stock_count": 8,
+    "image_url": "/images/anklet.png", "description": "A multi-layered silver anklet design."
+  },
+  {
+    "sku": "AU-ANK-08", "name": "Daily Wear Gold Anklet", "category": "Anklets", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 10.50, "making_charges": 300, "stock_count": 18,
+    "image_url": "/images/anklet.png", "description": "A simple and elegant gold anklet designed for everyday use."
+  },
+  {
+    "sku": "AU-ANK-09", "name": "Designer Platinum Anklet", "category": "Anklets", "collection": "Womens", "metal": "Platinum", "purity": "PT950", "weight": 15.00, "making_charges": 600, "stock_count": 6,
+    "image_url": "/images/anklet.png", "description": "A modern, designer-crafted platinum anklet."
+  },
+  {
+    "sku": "AU-ANK-10", "name": "Pearl Drop Anklet", "category": "Anklets", "collection": "Womens", "metal": "Gold", "purity": "18K", "weight": 14.00, "making_charges": 500, "stock_count": 9,
+    "image_url": "/images/anklet.png", "description": "A gold chain anklet featuring cultured pearl drops."
+  }
+]

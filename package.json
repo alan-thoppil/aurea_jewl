@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend/aureaa-main\"",
-    "start": "concurrently \"npm start --prefix backend\" \"npm start --prefix frontend/aureaa-main\"",
-    "install-all": "npm install --prefix backend && npm install --prefix frontend/aureaa-main && npm install"
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend/aureaa-main\" \"npm run dev --prefix admin_module/backend\" \"npm run dev --prefix admin_module/frontend\"",
+    "dev:customer": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend/aureaa-main\"",
+    "dev:admin": "concurrently \"npm run dev --prefix admin_module/backend\" \"npm run dev --prefix admin_module/frontend\"",
+    "start": "concurrently \"npm start --prefix backend\" \"npm start --prefix frontend/aureaa-main\" \"npm start --prefix admin_module/backend\" \"npm start --prefix admin_module/frontend\"",
+    "start:customer": "concurrently \"npm start --prefix backend\" \"npm start --prefix frontend/aureaa-main\"",
+    "start:admin": "concurrently \"npm start --prefix admin_module/backend\" \"npm start --prefix admin_module/frontend\"",
+    "install-all": "npm install --prefix backend && npm install --prefix frontend/aureaa-main && npm install --prefix admin_module/backend && npm install --prefix admin_module/frontend && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

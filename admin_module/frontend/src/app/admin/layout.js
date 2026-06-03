@@ -86,7 +86,7 @@ export default function AdminLayout({ children }) {
           </div>
 
           <Link
-            href="/"
+            href={process.env.NEXT_PUBLIC_STOREFRONT_URL || "http://localhost:3000"}
             className="flex items-center gap-1.5 text-[10px] tracking-widest text-white/60 hover:text-white uppercase border border-white/10 px-3 py-1.5 bg-white/5 transition-all"
           >
             <Home size={12} />
