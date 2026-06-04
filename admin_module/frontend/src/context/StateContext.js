@@ -163,24 +163,126 @@ export function StateProvider({ children }) {
     "24K": 7620, "22K": 6985, "18K": 5715, "14K": 4450, "PT950": 3100, "925": 85
   });
 
-  // Fetch products from Express Backend
+  // Admin silent login authentication helper
+  const loginAdmin = async () => {
+    try {
+      const res = await fetch("http://localhost:5002/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "admin@aurea.com", password: "adminpassword" })
+      });
+      if (!res.ok) throw new Error("Admin login API failed");
+      const json = await res.json();
+      if (json.token) {
+        localStorage.setItem("admin_token", json.token);
+        return json.token;
+      }
+    } catch (err) {
+      console.error("Silent admin login failed:", err);
+    }
+    return null;
+  };
+
+  // Authenticated fetch wrapper
+  const fetchWithAuth = async (url, options = {}) => {
+    let token = localStorage.getItem("admin_token");
+    if (!token) {
+      token = await loginAdmin();
+    }
+
+    const headers = {
+      ...options.headers,
+      "Content-Type": "application/json",
+      "Authorization": token ? `Bearer ${token}` : ""
+    };
+
+    let res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      // Retry once by requesting a fresh token
+      token = await loginAdmin();
+      const retryHeaders = {
+        ...options.headers,
+        "Content-Type": "application/json",
+        "Authorization": token ? `Bearer ${token}` : ""
+      };
+      res = await fetch(url, { ...options, headers: retryHeaders });
+    }
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || errJson.error || "API request failed");
+    }
+
+    const json = await res.json();
+    return json.data;
+  };
+
+  // Fetch products from Admin Express Backend (port 5002)
   const { data: fetchedProducts } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/products");
+      const res = await fetch("http://localhost:5002/api/products");
       if (!res.ok) throw new Error("Failed to fetch");
       const json = await res.json();
       return json.data || [];
     }
   });
 
-  // Sync fetched products with local state for backward compatibility
+  // Fetch orders from Admin Express Backend (port 5002)
+  const { data: fetchedOrders } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      return await fetchWithAuth("http://localhost:5002/api/admin/orders");
+    }
+  });
+
+  // Fetch customers from Admin Express Backend (port 5002)
+  const { data: fetchedCustomers } = useQuery({
+    queryKey: ['customers'],
+    queryFn: async () => {
+      return await fetchWithAuth("http://localhost:5002/api/admin/customers");
+    }
+  });
+
+  // Sync products
   useEffect(() => {
-    // Disabled to show old local images
-    // if (fetchedProducts && fetchedProducts.length > 0) {
-    //   setProducts(fetchedProducts);
-    // }
+    if (fetchedProducts && fetchedProducts.length > 0) {
+      const merged = fetchedProducts.map(fp => {
+        const localMatch = INITIAL_PRODUCTS.find(lp => lp.sku === fp.sku);
+        
+        let dbImageUrl = null;
+        if (fp.product_images && fp.product_images.length > 0) {
+          const primaryImg = fp.product_images.find(img => img.is_primary) || fp.product_images[0];
+          dbImageUrl = primaryImg.image_url;
+        }
+
+        const categoryName = fp.categories?.name || fp.category || (localMatch ? localMatch.category : 'Rings');
+
+        return {
+          ...localMatch,
+          ...fp,
+          category: categoryName,
+          stock_count: fp.stock_quantity !== undefined ? fp.stock_quantity : (localMatch ? localMatch.stock_count : 0),
+          image_url: dbImageUrl || fp.image_url || (localMatch ? localMatch.image_url : '/images/placeholder.png')
+        };
+      });
+      setProducts(merged);
+    }
   }, [fetchedProducts]);
+
+  // Sync orders
+  useEffect(() => {
+    if (fetchedOrders) {
+      setOrders(fetchedOrders);
+    }
+  }, [fetchedOrders]);
+
+  // Sync customers
+  useEffect(() => {
+    if (fetchedCustomers) {
+      setCustomers(fetchedCustomers);
+    }
+  }, [fetchedCustomers]);
 
   useEffect(() => {
     // Check local storage persistence on load
@@ -266,19 +368,20 @@ export function StateProvider({ children }) {
 
   // Live metal price mapping based on current 24K ticker
   const getMetalRatePerGram = (metal, purity) => {
-    if (metal.toLowerCase() === "gold") {
+    const safeMetal = (metal || "gold").toLowerCase();
+    if (safeMetal === "gold") {
       if (purity === "24K") return liveGoldPrice24K;
       if (purity === "22K") return parseFloat((liveGoldPrice24K * 0.916).toFixed(2));
       if (purity === "18K") return parseFloat((liveGoldPrice24K * 0.75).toFixed(2));
       return parseFloat((liveGoldPrice24K * 0.585).toFixed(2)); // 14K
     }
-    if (metal.toLowerCase() === "platinum" || metal.toLowerCase() === "pt950") {
+    if (safeMetal === "platinum" || safeMetal === "pt950") {
       return 3450.00; // stable premium platinum rate
     }
-    if (metal.toLowerCase() === "silver") {
+    if (safeMetal === "silver") {
       return 95.00; // silver rate per gram
     }
-    if (metal.toLowerCase() === "rose gold") {
+    if (safeMetal === "rose gold") {
       return parseFloat((liveGoldPrice24K * 0.75).toFixed(2)); // rose gold 18k base
     }
     return 2000.00; // fallback default
@@ -286,12 +389,38 @@ export function StateProvider({ children }) {
 
   // Get absolute item pricing
   const calculateProductPrice = (product) => {
-    const metalRate = getMetalRatePerGram(product.metal, product.purity);
-    const metalVal = metalRate * product.weight;
-    const makingVal = product.making_charges * product.weight;
-    const subtotal = metalVal + makingVal;
-    const gstVal = subtotal * 0.03; // 3% GST
-    const total = subtotal + gstVal;
+    if (!product) {
+      return { metalValue: 0, makingCharges: 0, subtotal: 0, gst: 0, total: 0 };
+    }
+
+    const hasWeight = product.weight && parseFloat(product.weight) > 0;
+    
+    let total = parseFloat(product.price) || 0;
+    let subtotal = total / 1.03; // assume 3% GST included in base price
+    let gstVal = total - subtotal;
+    let metalVal = subtotal;
+    let makingVal = 0;
+
+    if (hasWeight) {
+      const metal = product.metal || "gold";
+      const purity = product.purity || "22K";
+      const makingCharges = product.making_charges || 0;
+      
+      const metalRate = getMetalRatePerGram(metal, purity);
+      const calculatedMetalVal = metalRate * parseFloat(product.weight);
+      const calculatedMakingVal = parseFloat(makingCharges) * parseFloat(product.weight);
+      const calculatedSubtotal = calculatedMetalVal + calculatedMakingVal;
+      const calculatedGstVal = calculatedSubtotal * 0.03;
+      const calculatedTotal = calculatedSubtotal + calculatedGstVal;
+
+      if (!isNaN(calculatedTotal) && calculatedTotal > 0) {
+        metalVal = calculatedMetalVal;
+        makingVal = calculatedMakingVal;
+        subtotal = calculatedSubtotal;
+        gstVal = calculatedGstVal;
+        total = calculatedTotal;
+      }
+    }
 
     return {
       metalValue: parseFloat(metalVal.toFixed(2)),
@@ -435,89 +564,112 @@ export function StateProvider({ children }) {
   };
 
   // SUBMIT POS STORE SALE
-  const processPOSSale = (saleItems, customerId, paymentMethod, discountPercentage = 0) => {
+  // SUBMIT POS STORE SALE
+  const processPOSSale = async (saleItems, customerId, paymentMethod, discountPercentage = 0) => {
     if (saleItems.length === 0) return { success: false, error: "No products added to bill" };
 
-    let rawSubtotal = 0;
-    let rawMaking = 0;
-
+    // Calculate checkout totals
+    let subtotal = 0;
+    let makingCharges = 0;
+    
     saleItems.forEach((item) => {
       const prices = calculateProductPrice(item);
-      rawSubtotal += prices.metalValue * item.quantity;
-      rawMaking += prices.makingCharges * item.quantity;
+      subtotal += prices.metalValue * item.quantity;
+      makingCharges += prices.makingCharges * item.quantity;
     });
 
-    const combinedSub = rawSubtotal + rawMaking;
+    const combinedSub = subtotal + makingCharges;
     const discountVal = combinedSub * (discountPercentage / 100);
     const activeSub = combinedSub - discountVal;
     const gst = activeSub * 0.03;
     const total = activeSub + gst;
 
-    // 1. Stock deduction
-    setProducts((prevProducts) =>
-      prevProducts.map((p) => {
-        const billed = saleItems.find((s) => s.sku === p.sku);
-        if (billed) {
-          return { ...p, stock_count: Math.max(0, p.stock_count - billed.quantity) };
-        }
-        return p;
-      })
-    );
-
-    // 2. CRM Update
-    const activeCust = customers.find((c) => c.id === customerId);
-    const pointsEarned = Math.floor(total / 800); // POS loyalty multiplier
-    if (activeCust) {
-      setCustomers((prevCust) =>
-        prevCust.map((c) =>
-          c.id === customerId
-            ? { ...c, loyalty_points: c.loyalty_points + pointsEarned }
-            : c
-        )
-      );
-    }
-
-    // 3. Register transaction order
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
-    const newOrder = {
-      id: `ord-${Date.now()}`,
-      order_number: invoiceNumber,
-      customer_id: customerId || "Walk-in Customer",
-      customer_name: activeCust ? activeCust.name : "Walk-in Customer",
-      items: saleItems.map((item) => ({
-        sku: item.sku,
-        name: item.name,
-        quantity: item.quantity,
-        price: calculateProductPrice(item).total
-      })),
-      subtotal: rawSubtotal,
-      making_charges: rawMaking,
-      discount: discountVal,
-      gst,
-      total,
-      payment_method: paymentMethod,
-      payment_status: "Completed",
-      created_at: new Date().toISOString()
+    // Resolve customer details from customerId if selected
+    const activeCustomer = customers.find(c => c.id === customerId);
+    const customerDetails = {
+      name: activeCustomer ? activeCustomer.name : "Walk-in Customer",
+      email: activeCustomer ? activeCustomer.email : `walkin-${Date.now()}@aurea.com`,
+      phone: activeCustomer ? activeCustomer.phone : "+91 99999 99999",
+      birthday: activeCustomer ? activeCustomer.birthday : ""
     };
-    setOrders((prevOrders) => [newOrder, ...prevOrders]);
 
-    // 4. Register accounting ledger credit entry
-    setLedger((prevLed) => {
-      const balance = prevLed[prevLed.length - 1].running_balance + total;
-      return [
-        ...prevLed,
-        {
-          id: `led-${Date.now()}`,
-          transaction_date: new Date().toISOString(),
-          description: `POS Bill Invoice ${invoiceNumber}`,
-          type: "Credit",
+    try {
+      // 1. Create order on the backend
+      const orderRes = await fetch("http://localhost:5002/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_details: customerDetails,
+          items: saleItems.map((item) => {
+            const dbProduct = products.find((p) => p.sku === item.sku);
+            return {
+              product_id: dbProduct ? dbProduct.id : null,
+              quantity: item.quantity,
+              price: calculateProductPrice(item).total
+            };
+          }),
+          total_amount: total
+        })
+      });
+
+      if (!orderRes.ok) {
+        const errJson = await orderRes.json();
+        throw new Error(errJson.error || "Failed to create POS order on server");
+      }
+
+      const orderJson = await orderRes.json();
+      const orderData = orderJson.data;
+
+      // 2. Create payment on the backend (marks paid, generates invoice and PDF)
+      const paymentRes = await fetch("http://localhost:5002/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: orderData.order.id,
           amount: total,
-          running_balance: balance
-        }
-      ];
-    });
+          payment_method: paymentMethod
+        })
+      });
 
-    return { success: true, invoiceNumber, total };
+      if (!paymentRes.ok) {
+        const errJson = await paymentRes.json();
+        throw new Error(errJson.error || "Failed to process POS payment on server");
+      }
+
+      const paymentJson = await paymentRes.json();
+      const paymentResult = paymentJson.data;
+
+      // Refetch queries to keep UI in sync
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+
+      // Add general ledger credit entry
+      setLedger((prevLed) => {
+        const balance = prevLed[prevLed.length - 1].running_balance + total;
+        return [
+          ...prevLed,
+          {
+            id: `led-${Date.now()}`,
+            transaction_date: new Date().toISOString(),
+            description: `POS Bill Invoice ${paymentResult.invoice.invoice_number}`,
+            type: "Credit",
+            amount: total,
+            running_balance: balance
+          }
+        ];
+      });
+
+      return {
+        success: true,
+        invoiceNumber: paymentResult.invoice.invoice_number,
+        total
+      };
+
+    } catch (err) {
+      console.error("POS Sale failed:", err);
+      return { success: false, error: err.message };
+    }
   };
 
   // INVENTORY WORKFLOWS
@@ -573,22 +725,37 @@ export function StateProvider({ children }) {
     removeProductMutation.mutate(sku);
   };
 
-  // CRM CUSTOMER MANAGEMENT
+  // CRM CUSTOMER MANAGEMENT MUTATIONS
+  const addCustomerMutation = useMutation({
+    mutationFn: async (newCustomer) => {
+      return await fetchWithAuth("http://localhost:5002/api/admin/customers", {
+        method: "POST",
+        body: JSON.stringify(newCustomer)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    }
+  });
+
+  const updateCustomerMutation = useMutation({
+    mutationFn: async ({ id, updatedDetails }) => {
+      return await fetchWithAuth(`http://localhost:5002/api/admin/customers/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(updatedDetails)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    }
+  });
+
   const addCustomer = (customer) => {
-    const fresh = {
-      id: `cust-${Date.now()}`,
-      loyalty_points: 0,
-      gold_scheme_status: "Inactive",
-      scheme_id: null,
-      ...customer
-    };
-    setCustomers((prev) => [...prev, fresh]);
+    addCustomerMutation.mutate(customer);
   };
 
   const updateCustomerDetails = (id, updatedDetails) => {
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updatedDetails } : c))
-    );
+    updateCustomerMutation.mutate({ id, updatedDetails });
   };
 
   // REPAIR JOBS WORKFLOW

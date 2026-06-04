@@ -251,7 +251,7 @@ export const filterOrdersController =
 
                 query =
                     query.eq(
-                        'status',
+                        'order_status',
                         status
                     )
 

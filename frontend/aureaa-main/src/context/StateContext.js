@@ -176,10 +176,28 @@ export function StateProvider({ children }) {
 
   // Sync fetched products with local state for backward compatibility
   useEffect(() => {
-    // Disabled to show old local images
-    // if (fetchedProducts && fetchedProducts.length > 0) {
-    //   setProducts(fetchedProducts);
-    // }
+    if (fetchedProducts && fetchedProducts.length > 0) {
+      const merged = fetchedProducts.map(fp => {
+        const localMatch = INITIAL_PRODUCTS.find(lp => lp.sku === fp.sku);
+        
+        let dbImageUrl = null;
+        if (fp.product_images && fp.product_images.length > 0) {
+          const primaryImg = fp.product_images.find(img => img.is_primary) || fp.product_images[0];
+          dbImageUrl = primaryImg.image_url;
+        }
+
+        const categoryName = fp.categories?.name || fp.category || (localMatch ? localMatch.category : 'Rings');
+
+        return {
+          ...localMatch,
+          ...fp,
+          category: categoryName,
+          stock_count: fp.stock_quantity !== undefined ? fp.stock_quantity : (localMatch ? localMatch.stock_count : 0),
+          image_url: dbImageUrl || fp.image_url || (localMatch ? localMatch.image_url : '/images/placeholder.png')
+        };
+      });
+      setProducts(merged);
+    }
   }, [fetchedProducts]);
 
   useEffect(() => {
@@ -266,19 +284,20 @@ export function StateProvider({ children }) {
 
   // Live metal price mapping based on current 24K ticker
   const getMetalRatePerGram = (metal, purity) => {
-    if (metal.toLowerCase() === "gold") {
+    const safeMetal = (metal || "gold").toLowerCase();
+    if (safeMetal === "gold") {
       if (purity === "24K") return liveGoldPrice24K;
       if (purity === "22K") return parseFloat((liveGoldPrice24K * 0.916).toFixed(2));
       if (purity === "18K") return parseFloat((liveGoldPrice24K * 0.75).toFixed(2));
       return parseFloat((liveGoldPrice24K * 0.585).toFixed(2)); // 14K
     }
-    if (metal.toLowerCase() === "platinum" || metal.toLowerCase() === "pt950") {
+    if (safeMetal === "platinum" || safeMetal === "pt950") {
       return 3450.00; // stable premium platinum rate
     }
-    if (metal.toLowerCase() === "silver") {
+    if (safeMetal === "silver") {
       return 95.00; // silver rate per gram
     }
-    if (metal.toLowerCase() === "rose gold") {
+    if (safeMetal === "rose gold") {
       return parseFloat((liveGoldPrice24K * 0.75).toFixed(2)); // rose gold 18k base
     }
     return 2000.00; // fallback default
@@ -286,12 +305,38 @@ export function StateProvider({ children }) {
 
   // Get absolute item pricing
   const calculateProductPrice = (product) => {
-    const metalRate = getMetalRatePerGram(product.metal, product.purity);
-    const metalVal = metalRate * product.weight;
-    const makingVal = product.making_charges * product.weight;
-    const subtotal = metalVal + makingVal;
-    const gstVal = subtotal * 0.03; // 3% GST
-    const total = subtotal + gstVal;
+    if (!product) {
+      return { metalValue: 0, makingCharges: 0, subtotal: 0, gst: 0, total: 0 };
+    }
+
+    const hasWeight = product.weight && parseFloat(product.weight) > 0;
+    
+    let total = parseFloat(product.price) || 0;
+    let subtotal = total / 1.03; // assume 3% GST included in base price
+    let gstVal = total - subtotal;
+    let metalVal = subtotal;
+    let makingVal = 0;
+
+    if (hasWeight) {
+      const metal = product.metal || "gold";
+      const purity = product.purity || "22K";
+      const makingCharges = product.making_charges || 0;
+      
+      const metalRate = getMetalRatePerGram(metal, purity);
+      const calculatedMetalVal = metalRate * parseFloat(product.weight);
+      const calculatedMakingVal = parseFloat(makingCharges) * parseFloat(product.weight);
+      const calculatedSubtotal = calculatedMetalVal + calculatedMakingVal;
+      const calculatedGstVal = calculatedSubtotal * 0.03;
+      const calculatedTotal = calculatedSubtotal + calculatedGstVal;
+
+      if (!isNaN(calculatedTotal) && calculatedTotal > 0) {
+        metalVal = calculatedMetalVal;
+        makingVal = calculatedMakingVal;
+        subtotal = calculatedSubtotal;
+        gstVal = calculatedGstVal;
+        total = calculatedTotal;
+      }
+    }
 
     return {
       metalValue: parseFloat(metalVal.toFixed(2)),
@@ -334,104 +379,85 @@ export function StateProvider({ children }) {
   const clearCart = () => setCart([]);
 
   // SUBMIT ONLINE CUSTOMER CHECKOUT
-  const checkoutCart = (customerDetails, paymentMethod = "Razorpay") => {
+  const checkoutCart = async (customerDetails, paymentMethod = "Razorpay") => {
     if (cart.length === 0) return { success: false, error: "Cart is empty" };
 
-    // 1. Calculate checkout figures
-    let subtotal = 0;
-    let makingCharges = 0;
-    
+    // Calculate checkout grand total
+    let total = 0;
     cart.forEach((item) => {
       const prices = calculateProductPrice(item);
-      subtotal += prices.metalValue * item.quantity;
-      makingCharges += prices.makingCharges * item.quantity;
+      total += prices.total * item.quantity;
     });
 
-    const combinedSub = subtotal + makingCharges;
-    const gst = combinedSub * 0.03;
-    const total = combinedSub + gst;
+    try {
+      // 1. Create order on the backend
+      const orderRes = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_details: {
+            name: customerDetails.name,
+            email: customerDetails.email,
+            phone: customerDetails.phone || "",
+            birthday: customerDetails.birthday || ""
+          },
+          items: cart.map((item) => {
+            const dbProduct = products.find((p) => p.sku === item.sku);
+            return {
+              product_id: dbProduct ? dbProduct.id : null,
+              quantity: item.quantity,
+              price: calculateProductPrice(item).total
+            };
+          }),
+          total_amount: total
+        })
+      });
 
-    // 2. Reduce stock counts
-    setProducts((prevProd) =>
-      prevProd.map((p) => {
-        const cartItem = cart.find((c) => c.sku === p.sku);
-        if (cartItem) {
-          return { ...p, stock_count: Math.max(0, p.stock_count - cartItem.quantity) };
-        }
-        return p;
-      })
-    );
+      if (!orderRes.ok) {
+        const errJson = await orderRes.json();
+        throw new Error(errJson.error || "Failed to create order on server");
+      }
 
-    // 3. Upsert customer / update loyalty points
-    let finalCust = customers.find(
-      (c) => c.email.toLowerCase() === customerDetails.email.toLowerCase()
-    );
+      const orderJson = await orderRes.json();
+      const orderData = orderJson.data;
 
-    const loyaltyEarned = Math.floor(total / 1000);
+      // 2. Create payment on the backend (marks order as paid, generates invoice, ledger, notification, and email)
+      const paymentRes = await fetch("http://localhost:5000/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: orderData.order.id,
+          amount: total,
+          payment_method: paymentMethod
+        })
+      });
 
-    if (finalCust) {
-      setCustomers((prevCust) =>
-        prevCust.map((c) =>
-          c.id === finalCust.id
-            ? { ...c, loyalty_points: c.loyalty_points + loyaltyEarned }
-            : c
-        )
-      );
-    } else {
-      const newCust = {
-        id: `cust-${Date.now()}`,
-        name: customerDetails.name,
-        email: customerDetails.email,
-        phone: customerDetails.phone || "",
-        loyalty_points: loyaltyEarned,
-        birthday: customerDetails.birthday || "",
-        gold_scheme_status: "Inactive",
-        scheme_id: null
+      if (!paymentRes.ok) {
+        const errJson = await paymentRes.json();
+        throw new Error(errJson.error || "Failed to capture payment on server");
+      }
+
+      const paymentJson = await paymentRes.json();
+      const paymentResult = paymentJson.data;
+
+      // 3. Clear cart locally
+      clearCart();
+
+      // Invalidate products query to refresh stock quantities in UI
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+
+      return { 
+        success: true, 
+        orderNumber: orderData.order.id.slice(-6).toUpperCase(), 
+        total,
+        invoiceNumber: paymentResult.invoice.invoice_number,
+        pdfUrl: `http://localhost:5000/uploads/invoice-${paymentResult.invoice.invoice_number}.pdf`
       };
-      setCustomers((prevCust) => [...prevCust, newCust]);
-      finalCust = newCust;
+
+    } catch (err) {
+      console.error("Checkout failed:", err);
+      return { success: false, error: err.message };
     }
-
-    // 4. Create Order Transaction
-    const orderNo = `AUREA-${Date.now().toString().slice(-6)}`;
-    const newOrder = {
-      id: `ord-${Date.now()}`,
-      order_number: orderNo,
-      customer_id: finalCust.id,
-      customer_name: finalCust.name,
-      items: cart.map((item) => ({
-        sku: item.sku,
-        name: item.name,
-        quantity: item.quantity,
-        price: calculateProductPrice(item).total
-      })),
-      subtotal,
-      making_charges: makingCharges,
-      gst,
-      total,
-      payment_method: paymentMethod,
-      payment_status: "Completed",
-      created_at: new Date().toISOString()
-    };
-
-    setOrders((prevOrd) => [newOrder, ...prevOrd]);
-
-    // 5. Post to Ledger
-    setLedger((prevLed) => {
-      const balance = prevLed[prevLed.length - 1].running_balance + total;
-      const newLedEntry = {
-        id: `led-${Date.now()}`,
-        transaction_date: new Date().toISOString(),
-        description: `eCommerce Order: ${orderNo} (${finalCust.name})`,
-        type: "Credit",
-        amount: total,
-        running_balance: balance
-      };
-      return [...prevLed, newLedEntry];
-    });
-
-    clearCart();
-    return { success: true, orderNumber: orderNo, total };
   };
 
   // SUBMIT POS STORE SALE

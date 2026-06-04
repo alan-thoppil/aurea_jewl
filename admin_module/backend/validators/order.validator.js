@@ -8,7 +8,17 @@ export const createOrderSchema = z.object({
 
     customer_id: z
         .string()
-        .uuid('Invalid customer ID'),
+        .uuid('Invalid customer ID')
+        .optional(),
+
+    customer_details: z
+        .object({
+            name: z.string().min(1, 'Name is required'),
+            email: z.string().email('Invalid email format'),
+            phone: z.string().optional(),
+            birthday: z.string().optional()
+        })
+        .optional(),
 
     items: z
         .array(

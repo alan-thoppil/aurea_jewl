@@ -21,7 +21,7 @@ export const generateInvoiceService = async ({
 
     const gstData =
         calculateGSTService({
-            amount: total_amount
+            amount: total_amount / 1.03
         })
 
     // ============================================
@@ -46,24 +46,18 @@ export const generateInvoiceService = async ({
                 customer_id,
                 invoice_number: invoiceNumber,
 
-                subtotal: gstData.taxable_amount,
+                subtotal: parseFloat(gstData.taxable_amount.toFixed(2)),
+                taxable_amount: parseFloat(gstData.taxable_amount.toFixed(2)),
 
-                gst_percentage:
-                    gstData.gst_percentage,
+                cgst_rate: 1.50,
+                sgst_rate: 1.50,
 
-                gst_amount:
-                    gstData.gst_amount,
+                cgst_amount: parseFloat(gstData.cgst.toFixed(2)),
+                sgst_amount: parseFloat(gstData.sgst.toFixed(2)),
 
-                cgst:
-                    gstData.cgst,
+                total_amount: parseFloat(gstData.final_amount.toFixed(2)),
 
-                sgst:
-                    gstData.sgst,
-
-                total_amount:
-                    gstData.final_amount,
-
-                invoice_status: 'generated'
+                status: 'generated'
             }
         ])
         .select()

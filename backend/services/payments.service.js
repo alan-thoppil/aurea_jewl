@@ -36,6 +36,28 @@ export const createPaymentService =
     async (paymentData) => {
 
         // ==========================================
+        // FETCH ORDER DETAILS
+        // ==========================================
+
+        const {
+            data: order,
+            error: orderFetchError
+        } = await supabase
+            .from('orders')
+            .select('user_id')
+            .eq('id', paymentData.order_id)
+            .single()
+
+        if (orderFetchError) {
+            throw new AppError(orderFetchError.message, 500)
+        }
+
+        const userId = order ? order.user_id : null;
+        if (!userId) {
+            throw new AppError("Order not found or has no user_id", 404)
+        }
+
+        // ==========================================
         // INSERT PAYMENT
         // ==========================================
 
@@ -48,6 +70,9 @@ export const createPaymentService =
                 {
                     order_id:
                         paymentData.order_id,
+
+                    user_id:
+                        userId,
 
                     amount:
                         paymentData.amount,
@@ -89,7 +114,7 @@ export const createPaymentService =
                 payment_status:
                     'paid',
 
-                status:
+                order_status:
                     'confirmed'
 
             })
@@ -124,7 +149,7 @@ export const createPaymentService =
                     updatedOrder.id,
 
                 customer_id:
-                    updatedOrder.customer_id,
+                    updatedOrder.user_id,
 
                 total_amount:
                     updatedOrder.total_amount
@@ -157,7 +182,7 @@ export const createPaymentService =
             await createAuditLogService({
 
                 user_id:
-                    updatedOrder.customer_id,
+                    updatedOrder.user_id,
 
                 action:
                     'PAYMENT_COMPLETED',
@@ -178,7 +203,7 @@ export const createPaymentService =
             await createNotificationService({
 
                 user_id:
-                    updatedOrder.customer_id,
+                    updatedOrder.user_id,
 
                 title:
                     'Payment Successful',
@@ -237,7 +262,7 @@ export const createPaymentService =
         await createSystemActivityService({
 
             user_id:
-                updatedOrder.customer_id,
+                updatedOrder.user_id,
 
             action:
                 'PAYMENT_COMPLETED',

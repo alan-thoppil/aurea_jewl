@@ -8,6 +8,10 @@ import {
 
     getAllCustomersController,
 
+    createCustomerController,
+
+    updateCustomerController,
+
     getLowStockProductsController,
 
     searchProductsController,
@@ -72,6 +76,16 @@ router.get(
 router.get(
     '/customers',
     getAllCustomersController
+)
+
+router.post(
+    '/customers',
+    createCustomerController
+)
+
+router.put(
+    '/customers/:id',
+    updateCustomerController
 )
 
 // ============================================

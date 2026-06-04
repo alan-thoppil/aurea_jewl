@@ -91,8 +91,12 @@ export const cancelOrderService = async (
             .insert([
                 {
                     product_id: item.product_id,
-                    movement_type: 'IN',
-                    quantity: item.quantity,
+                    type: 'return',
+                    quantity_change: item.quantity,
+                    quantity_before: inventoryItem.quantity,
+                    quantity_after: restoredQuantity,
+                    reference_type: 'orders',
+                    reference_id: order_id,
                     notes:
                         `Order cancelled: ${order_id}`
                 }
@@ -110,7 +114,7 @@ export const cancelOrderService = async (
     } = await supabase
         .from('orders')
         .update({
-            status: 'cancelled'
+            order_status: 'cancelled'
         })
         .eq('id', order_id)
         .select()
@@ -128,7 +132,7 @@ export const cancelOrderService = async (
         await createAuditLogService({
 
             user_id:
-                updatedOrder.customer_id,
+                updatedOrder.user_id,
 
             action:
                 'ORDER_CANCELLED',
@@ -149,7 +153,7 @@ export const cancelOrderService = async (
         await createNotificationService({
 
             user_id:
-                updatedOrder.customer_id,
+                updatedOrder.user_id,
 
             title:
                 'Order Cancelled',

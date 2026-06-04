@@ -29,7 +29,7 @@ export const generateInvoicePDFService =
         // ==========================================
 
         const filePath =
-            path.join('logs', fileName)
+            path.join('uploads', fileName)
 
         // ==========================================
         // WRITE STREAM
@@ -70,15 +70,15 @@ export const generateInvoicePDFService =
         )
 
         doc.text(
-            `GST: ₹${invoiceData.gst_amount}`
+            `GST: ₹${(Number(invoiceData.cgst_amount) + Number(invoiceData.sgst_amount)).toFixed(2)}`
         )
 
         doc.text(
-            `CGST: ₹${invoiceData.cgst}`
+            `CGST: ₹${invoiceData.cgst_amount}`
         )
 
         doc.text(
-            `SGST: ₹${invoiceData.sgst}`
+            `SGST: ₹${invoiceData.sgst_amount}`
         )
 
         doc.moveDown()

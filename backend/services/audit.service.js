@@ -23,10 +23,12 @@ export const createAuditLogService = async ({
         .from('audit_logs')
         .insert([
             {
-                user_id,
+                actor_id: user_id,
                 action,
-                module,
-                details
+                new_values: {
+                    module,
+                    details
+                }
             }
         ])
         .select()

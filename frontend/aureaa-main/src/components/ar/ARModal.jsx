@@ -154,7 +154,20 @@ const ARModal = () => {
     if (!activeProduct) return;
 
     const { poseLandmarks, faceLandmarks, leftHandLandmarks, rightHandLandmarks } = data;
-    const cat = activeProduct.category.toLowerCase();
+    
+    let cat = "";
+    if (activeProduct.category) {
+      cat = activeProduct.category.toLowerCase();
+    } else {
+      const name = (activeProduct.name || "").toLowerCase();
+      const sku = (activeProduct.sku || "").toLowerCase();
+      if (name.includes("ring") || sku.includes("rng")) cat = "ring";
+      else if (name.includes("necklace") || name.includes("pendant") || sku.includes("nck")) cat = "necklace";
+      else if (name.includes("earring") || sku.includes("ear")) cat = "earring";
+      else if (name.includes("bangle") || name.includes("bracelet") || sku.includes("bng")) cat = "bangle";
+      else if (name.includes("anklet") || sku.includes("ank")) cat = "anklet";
+      else cat = "gold";
+    }
 
     let rawPosition = null;
     let rawScale = null;

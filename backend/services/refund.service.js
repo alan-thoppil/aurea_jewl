@@ -77,25 +77,107 @@ export const createRefundService = async ({
     // CREATE ACCOUNTING REVERSAL
     // ============================================
 
-    await supabase
+    const getOrCreateAccount = async (name, type, code) => {
+        const { data: existing } = await supabase
+            .from('ledger_accounts')
+            .select('id')
+            .eq('name', name)
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            return existing[0].id;
+        }
+
+        const { data: created, error } = await supabase
+            .from('ledger_accounts')
+            .insert([
+                {
+                    name,
+                    type,
+                    code,
+                    is_system_account: true
+                }
+            ])
+            .select('id')
+            .single();
+
+        if (error) {
+            throw new AppError(`Failed to create ledger account ${name}: ${error.message}`, 500);
+        }
+        return created.id;
+    };
+
+    const cashAccountId = await getOrCreateAccount('Cash', 'asset', '1000');
+    const salesReturnsAccountId = await getOrCreateAccount('Sales Returns', 'expense', '5000');
+
+    const entryNumber = `JE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const description = `Refund processed for payment ${payment_id}`;
+
+    const { data: journalEntry, error: journalError } = await supabase
+        .from('journal_entries')
+        .insert([
+            {
+                entry_number: entryNumber,
+                type: 'refund',
+                reference_type: 'payments',
+                reference_id: payment_id,
+                description,
+                total_debit: amount,
+                total_credit: amount,
+                is_posted: true
+            }
+        ])
+        .select()
+        .single();
+
+    if (journalError) {
+        throw new AppError(`Journal Entry Error: ${journalError.message}`, 500);
+    }
+
+    const { error: ledgerError } = await supabase
         .from('ledger_entries')
         .insert([
             {
-                order_id: payment.order_id,
-                payment_id: payment.id,
-
-                transaction_type: 'REFUND',
-
-                debit_account: 'Sales Returns',
-
-                credit_account: 'Cash',
-
+                journal_entry_id: journalEntry.id,
+                account_id: salesReturnsAccountId,
+                type: 'debit',
                 amount,
-
-                notes:
-                    `Refund processed for payment ${payment_id}`
+                narration: description
+            },
+            {
+                journal_entry_id: journalEntry.id,
+                account_id: cashAccountId,
+                type: 'credit',
+                amount,
+                narration: description
             }
-        ])
+        ]);
+
+    if (ledgerError) {
+        throw new AppError(`Ledger Line Error: ${ledgerError.message}`, 500);
+    }
+
+
+    // ============================================
+    // RESOLVE USER ID FOR AUDIT LOG & NOTIFICATION
+    // ============================================
+
+    const { data: order } = await supabase
+        .from('orders')
+        .select('user_id')
+        .eq('id', payment.order_id)
+        .single();
+
+    let targetUserId = order ? order.user_id : null;
+    if (!targetUserId) {
+        const { data: users } = await supabase
+            .from('users')
+            .select('id')
+            .limit(1);
+        if (users && users.length > 0) {
+            targetUserId = users[0].id;
+        }
+    }
 
     // ============================================
     // CREATE AUDIT LOG
@@ -105,7 +187,7 @@ export const createRefundService = async ({
         await createAuditLogService({
 
             user_id:
-                null,
+                targetUserId,
 
             action:
                 'REFUND_PROCESSED',
@@ -126,7 +208,7 @@ export const createRefundService = async ({
         await createNotificationService({
 
             user_id:
-                null,
+                targetUserId,
 
             title:
                 'Refund Processed',

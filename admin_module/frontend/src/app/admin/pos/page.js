@@ -125,13 +125,13 @@ export default function POSPage() {
   const grandTotal = activeSub + gst;
 
   // Complete Billing Checkout
-  const handleFinaliseSale = () => {
+  const handleFinaliseSale = async () => {
     if (billedItems.length === 0) {
       alert("Billing cart is empty.");
       return;
     }
 
-    const res = processPOSSale(
+    const res = await processPOSSale(
       billedItems,
       selectedCustomerId || null,
       paymentMethod,

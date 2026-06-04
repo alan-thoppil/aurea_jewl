@@ -26,7 +26,6 @@ export const createNotificationService = async ({
                 user_id,
                 title,
                 message,
-                notification_type,
                 is_read: false
             }
         ])

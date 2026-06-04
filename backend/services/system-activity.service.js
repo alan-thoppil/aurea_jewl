@@ -20,6 +20,11 @@ export const createSystemActivityService =
 
     }) => {
 
+        let safeUserId = user_id;
+        if (typeof user_id === 'string' && user_id.includes('-')) {
+            safeUserId = null;
+        }
+
         const {
             data,
             error
@@ -31,7 +36,8 @@ export const createSystemActivityService =
 
                 {
 
-                    user_id,
+                    user_id:
+                        safeUserId,
 
                     action,
 
