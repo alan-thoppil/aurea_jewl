@@ -188,10 +188,28 @@ export function StateProvider({ children }) {
 
         const categoryName = fp.categories?.name || fp.category || (localMatch ? localMatch.category : 'Rings');
 
+        let descriptionText = fp.description || (localMatch ? localMatch.description : '');
+        let metal = localMatch ? localMatch.metal : 'Gold';
+        let makingCharges = localMatch ? localMatch.making_charges : 500;
+
+        if (fp.description && fp.description.startsWith('{')) {
+          try {
+            const parsedDesc = JSON.parse(fp.description);
+            descriptionText = parsedDesc.text || parsedDesc.description || '';
+            metal = parsedDesc.metal || metal;
+            makingCharges = parsedDesc.making_charges !== undefined ? parseFloat(parsedDesc.making_charges) : makingCharges;
+          } catch (e) {
+            // ignore and fallback
+          }
+        }
+
         return {
           ...localMatch,
           ...fp,
           category: categoryName,
+          description: descriptionText,
+          metal: metal,
+          making_charges: makingCharges,
           stock_count: fp.stock_quantity !== undefined ? fp.stock_quantity : (localMatch ? localMatch.stock_count : 0),
           image_url: dbImageUrl || fp.image_url || (localMatch ? localMatch.image_url : '/images/placeholder.png')
         };

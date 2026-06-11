@@ -258,10 +258,28 @@ export function StateProvider({ children }) {
 
         const categoryName = fp.categories?.name || fp.category || (localMatch ? localMatch.category : 'Rings');
 
+        let descriptionText = fp.description || (localMatch ? localMatch.description : '');
+        let metal = localMatch ? localMatch.metal : 'Gold';
+        let makingCharges = localMatch ? localMatch.making_charges : 500;
+
+        if (fp.description && fp.description.startsWith('{')) {
+          try {
+            const parsedDesc = JSON.parse(fp.description);
+            descriptionText = parsedDesc.text || parsedDesc.description || '';
+            metal = parsedDesc.metal || metal;
+            makingCharges = parsedDesc.making_charges !== undefined ? parseFloat(parsedDesc.making_charges) : makingCharges;
+          } catch (e) {
+            // ignore and fallback
+          }
+        }
+
         return {
           ...localMatch,
           ...fp,
           category: categoryName,
+          description: descriptionText,
+          metal: metal,
+          making_charges: makingCharges,
           stock_count: fp.stock_quantity !== undefined ? fp.stock_quantity : (localMatch ? localMatch.stock_count : 0),
           image_url: dbImageUrl || fp.image_url || (localMatch ? localMatch.image_url : '/images/placeholder.png')
         };
@@ -675,7 +693,7 @@ export function StateProvider({ children }) {
   // INVENTORY WORKFLOWS
   const addProductMutation = useMutation({
     mutationFn: async (newItem) => {
-      const res = await fetch("http://localhost:5000/api/products", {
+      const res = await fetch("http://localhost:5002/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newItem)
@@ -688,7 +706,7 @@ export function StateProvider({ children }) {
   const updateProductMutation = useMutation({
     mutationFn: async ({ sku, updatedItem }) => {
       // Using SKU as the identifier for now based on the frontend structure
-      const res = await fetch(`http://localhost:5000/api/products/${sku}`, {
+      const res = await fetch(`http://localhost:5002/api/products/${sku}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedItem)
@@ -700,7 +718,7 @@ export function StateProvider({ children }) {
 
   const removeProductMutation = useMutation({
     mutationFn: async (sku) => {
-      const res = await fetch(`http://localhost:5000/api/products/${sku}`, {
+      const res = await fetch(`http://localhost:5002/api/products/${sku}`, {
         method: "DELETE"
       });
       return res.json();

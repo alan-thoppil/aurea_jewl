@@ -263,8 +263,9 @@ export default function Home() {
                       <p className="text-[11px] text-white/50 leading-relaxed font-light line-clamp-2 mt-0.5">
                         {product.description}
                       </p>
-                      <div className="text-[10px] text-white/30 italic mt-1">
-                        Weight: {product.weight.toFixed(2)}g
+                      <div className="text-[10px] text-white/30 italic mt-1 flex justify-between">
+                        <span>Weight: {product.weight.toFixed(2)}g</span>
+                        <span className="uppercase tracking-wider font-sans text-white/40">SKU: {product.sku}</span>
                       </div>
                     </div>
 
@@ -588,6 +589,10 @@ export default function Home() {
                     <span className="text-[10px] tracking-widest uppercase text-white/45 font-semibold">Technical Specifications</span>
                     
                     <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs font-light text-white/70">
+                      <div className="flex justify-between border-b border-white/5 pb-1 col-span-2">
+                        <span className="text-white/30 uppercase tracking-wider text-[9px]">Product SKU</span>
+                        <span className="font-semibold text-gold-300 font-sans tracking-widest uppercase">{product.sku}</span>
+                      </div>
                       <div className="flex justify-between border-b border-white/5 pb-1">
                         <span className="text-white/30 uppercase tracking-wider text-[9px]">Metal</span>
                         <span className="font-semibold text-white">{product.metal}</span>

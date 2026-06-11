@@ -23,9 +23,37 @@ const inventorySchema = z.object({
   description: z.string().optional(),
 });
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-red-950/90 border border-red-500/40 text-red-400 text-xs font-mono flex flex-col gap-3">
+          <span className="font-bold text-sm">Form Render Crash</span>
+          <p>{this.state.error?.toString()}</p>
+          <pre className="p-3 bg-black/60 border border-white/5 overflow-auto max-h-48 text-[10px] leading-relaxed">
+            {this.state.error?.stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function InventoryPage() {
   const {
     products,
+    orders,
     addInventoryItem,
     updateInventoryItem,
     removeInventoryItem
@@ -179,6 +207,36 @@ export default function InventoryPage() {
         </button>
       </div>
 
+      {/* Stock Monitoring Dashboard */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <GlowCard className="bg-zinc-950/60 p-4 border border-white/5 flex flex-col gap-1.5">
+          <span className="text-[10px] text-white/40 uppercase tracking-widest">Total Stock Count</span>
+          <span className="text-2xl font-serif font-bold text-white">
+            {products.reduce((acc, p) => acc + (p.stock_count || 0), 0)} Units
+          </span>
+        </GlowCard>
+        <GlowCard className="bg-zinc-950/60 p-4 border border-white/5 flex flex-col gap-1.5">
+          <span className="text-[10px] text-white/40 uppercase tracking-widest">Low Stock Items</span>
+          <span className="text-2xl font-serif font-bold text-red-400">
+            {products.filter(p => p.stock_count > 0 && p.stock_count <= 3).length} Items
+          </span>
+        </GlowCard>
+        <GlowCard className="bg-zinc-950/60 p-4 border border-white/5 flex flex-col gap-1.5">
+          <span className="text-[10px] text-white/40 uppercase tracking-widest">Out of Stock</span>
+          <span className="text-2xl font-serif font-bold text-zinc-500">
+            {products.filter(p => p.stock_count === 0).length} Items
+          </span>
+        </GlowCard>
+        <GlowCard className="bg-zinc-950/60 p-4 border border-white/5 flex flex-col gap-1.5">
+          <span className="text-[10px] text-white/40 uppercase tracking-widest">Total Pieces Billed</span>
+          <span className="text-2xl font-serif font-bold text-gold-300">
+            {orders ? orders.reduce((acc, order) => {
+              return acc + (order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0);
+            }, 0) : 0} Sold
+          </span>
+        </GlowCard>
+      </div>
+
       {/* Search & Tabs */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
         
@@ -221,76 +279,84 @@ export default function InventoryPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((p) => (
-            <GlowCard key={p.sku} className="flex flex-col h-full bg-zinc-950/60 p-0 border border-white/5 group relative">
-              
-              {/* Product Thumbnail */}
-              <div className="w-full aspect-video bg-zinc-900 overflow-hidden border-b border-white/5 relative">
-                <img
-                  src={p.image_url}
-                  alt={p.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+          {filteredProducts.map((p) => {
+            const billedCount = orders ? orders.reduce((acc, order) => {
+              const item = order.items?.find(i => i.sku === p.sku);
+              return acc + (item ? (item.quantity || 0) : 0);
+            }, 0) : 0;
+            return (
+              <GlowCard key={p.sku} className="flex flex-col h-full bg-zinc-950/60 p-0 border border-white/5 group relative">
                 
-                {/* Stock Badges */}
-                <div className="absolute top-3 left-3">
-                  {p.stock_count === 0 ? (
-                    <span className="bg-zinc-800 border border-white/10 text-[9px] px-2 py-0.5 uppercase tracking-widest text-white/60 font-semibold font-sans">
-                      Out of Stock
-                    </span>
-                  ) : p.stock_count <= 3 ? (
-                    <span className="bg-red-950 border border-red-500/30 text-[9px] px-2 py-0.5 uppercase tracking-widest text-red-400 font-semibold font-sans animate-pulse">
-                      Low Stock: {p.stock_count}
-                    </span>
-                  ) : (
-                    <span className="bg-green-950 border border-green-500/30 text-[9px] px-2 py-0.5 uppercase tracking-widest text-green-400 font-semibold font-sans">
-                      Billed: {p.stock_count}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Product specifics */}
-              <div className="p-5 flex-1 flex flex-col justify-between text-left gap-4">
-                
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-[9px] text-white/40 uppercase tracking-widest">
-                    <span>{p.category}</span>
-                    <span className="font-semibold text-gold-500">{p.purity} {p.metal}</span>
+                {/* Product Thumbnail */}
+                <div className="w-full aspect-video bg-zinc-900 overflow-hidden border-b border-white/5 relative">
+                  <img
+                    src={p.image_url}
+                    alt={p.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  
+                  {/* Stock Badges */}
+                  <div className="absolute top-3 left-3">
+                    {p.stock_count === 0 ? (
+                      <span className="bg-zinc-800 border border-white/10 text-[9px] px-2 py-0.5 uppercase tracking-widest text-white/60 font-semibold font-sans">
+                        Out of Stock
+                      </span>
+                    ) : p.stock_count <= 3 ? (
+                      <span className="bg-red-950 border border-red-500/30 text-[9px] px-2 py-0.5 uppercase tracking-widest text-red-400 font-semibold font-sans animate-pulse">
+                        Low Stock: {p.stock_count}
+                      </span>
+                    ) : (
+                      <span className="bg-green-950 border border-green-500/30 text-[9px] px-2 py-0.5 uppercase tracking-widest text-green-400 font-semibold font-sans">
+                        In Stock: {p.stock_count}
+                      </span>
+                    )}
                   </div>
-                  <h3 className="text-sm font-serif font-semibold text-white tracking-wide truncate group-hover:text-gold-300">
-                    {p.name}
-                  </h3>
-                  <div className="text-[10px] text-white/50 flex flex-col gap-0.5 font-light tracking-wide">
-                    <div>Weight: <span className="font-medium text-white/80">{p.weight.toFixed(2)}g</span></div>
-                    <div>Making: <span className="font-medium text-white/80">₹{p.making_charges}/g</span></div>
+                </div>
+
+                {/* Product specifics */}
+                <div className="p-5 flex-1 flex flex-col justify-between text-left gap-4">
+                  
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-[9px] text-white/40 uppercase tracking-widest">
+                      <span>{p.category}</span>
+                      <span className="font-semibold text-gold-500">{p.purity} {p.metal}</span>
+                    </div>
+                    <h3 className="text-sm font-serif font-semibold text-white tracking-wide truncate group-hover:text-gold-300">
+                      {p.name}
+                    </h3>
+                    <div className="text-[10px] text-white/50 flex flex-col gap-0.5 font-light tracking-wide">
+                      <div>SKU: <span className="font-semibold text-gold-300 font-sans uppercase tracking-wider">{p.sku}</span></div>
+                      <div>Weight: <span className="font-medium text-white/80">{p.weight.toFixed(2)}g</span></div>
+                      <div>Making: <span className="font-medium text-white/80">₹{p.making_charges}/g</span></div>
+                      <div>Total Billed: <span className="font-medium text-white/80">{billedCount} Units</span></div>
+                    </div>
+                    <p className="text-[10px] text-white/40 line-clamp-2 mt-1 leading-relaxed">
+                      {p.description}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-white/40 line-clamp-2 mt-1 leading-relaxed">
-                    {p.description}
-                  </p>
+
+                  {/* Operations Edit/Delete */}
+                  <div className="flex gap-2 border-t border-white/5 pt-4 mt-1">
+                    <button
+                      onClick={() => handleOpenEdit(p)}
+                      className="flex-1 py-2 border border-white/10 text-white/60 hover:text-gold-300 hover:border-gold-500/30 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest cursor-pointer bg-zinc-950 transition-colors"
+                    >
+                      <Edit3 size={10} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.sku)}
+                      className="px-3 py-2 border border-white/10 text-white/40 hover:text-red-400 hover:border-red-500/30 flex items-center justify-center cursor-pointer bg-zinc-950 transition-colors"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
+
                 </div>
 
-                {/* Operations Edit/Delete */}
-                <div className="flex gap-2 border-t border-white/5 pt-4 mt-1">
-                  <button
-                    onClick={() => handleOpenEdit(p)}
-                    className="flex-1 py-2 border border-white/10 text-white/60 hover:text-gold-300 hover:border-gold-500/30 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest cursor-pointer bg-zinc-950 transition-colors"
-                  >
-                    <Edit3 size={10} />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.sku)}
-                    className="px-3 py-2 border border-white/10 text-white/40 hover:text-red-400 hover:border-red-500/30 flex items-center justify-center cursor-pointer bg-zinc-950 transition-colors"
-                  >
-                    <Trash2 size={10} />
-                  </button>
-                </div>
-
-              </div>
-
-            </GlowCard>
-          ))}
+              </GlowCard>
+            );
+          })}
         </div>
       )}
 
@@ -301,141 +367,143 @@ export default function InventoryPage() {
         title={editMode ? "Modify Catalogue Product" : "Enroll New Product"}
         className="max-w-2xl"
       >
-        <form onSubmit={handleInvSubmit(onValidInvSubmit)} className="flex flex-col gap-5 text-xs text-left">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Product SKU *</label>
-              <input
-                type="text"
-                {...registerInv("sku")}
-                readOnly={editMode}
-                className={`w-full bg-black border ${invErrors.sku ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 ${editMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-              />
-              {invErrors.sku && <span className="text-red-400 text-[9px] uppercase">{invErrors.sku.message}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Product Name *</label>
-              <input
-                type="text"
-                {...registerInv("name")}
-                className={`w-full bg-black border ${invErrors.name ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
-                placeholder="Royal Diamond Ring"
-              />
-              {invErrors.name && <span className="text-red-400 text-[9px] uppercase">{invErrors.name.message}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Category</label>
-              <select
-                {...registerInv("category")}
-                className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 appearance-none"
-              >
-                {categories.filter(c => c !== "All").map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Metal Type</label>
-              <select
-                {...registerInv("metal")}
-                className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 appearance-none"
-              >
-                <option value="Gold">Gold</option>
-                <option value="Rose Gold">Rose Gold</option>
-                <option value="Platinum">Platinum</option>
-                <option value="Silver">Silver</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Purity</label>
-              <select
-                {...registerInv("purity")}
-                className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 appearance-none"
-              >
-                <option value="24K">24K</option>
-                <option value="22K">22K</option>
-                <option value="18K">18K</option>
-                <option value="14K">14K</option>
-                <option value="PT950">PT950</option>
-                <option value="925">925 Sterling</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Weight (Grams) *</label>
-              <input
-                type="number"
-                step="0.01"
-                {...registerInv("weight")}
-                className={`w-full bg-black border ${invErrors.weight ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
-              />
-              {invErrors.weight && <span className="text-red-400 text-[9px] uppercase">{invErrors.weight.message}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Making Charges /gm (₹) *</label>
-              <input
-                type="number"
-                step="0.01"
-                {...registerInv("making_charges")}
-                className={`w-full bg-black border ${invErrors.making_charges ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
-              />
-              {invErrors.making_charges && <span className="text-red-400 text-[9px] uppercase">{invErrors.making_charges.message}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase text-white/50 tracking-wider">Stock Count *</label>
-              <input
-                type="number"
-                step="1"
-                {...registerInv("stock_count")}
-                className={`w-full bg-black border ${invErrors.stock_count ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
-              />
-              {invErrors.stock_count && <span className="text-red-400 text-[9px] uppercase">{invErrors.stock_count.message}</span>}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase text-white/50 tracking-wider">High-Res Image URL *</label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                {...registerInv("image_url")}
-                placeholder="https://..."
-                className={`flex-1 bg-black border ${invErrors.image_url ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
-              />
-              <div className="relative shrink-0 w-36 h-[42px]">
+        <ErrorBoundary>
+          <form onSubmit={handleInvSubmit(onValidInvSubmit)} className="flex flex-col gap-5 text-xs text-left">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Product SKU *</label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={isProcessingImage}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                  type="text"
+                  {...registerInv("sku")}
+                  readOnly={editMode}
+                  className={`w-full bg-black border ${invErrors.sku ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 ${editMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
-                <div className={`w-full h-full flex items-center justify-center border border-gold-500/50 bg-gold-500/10 text-gold-300 text-[9px] font-bold tracking-widest uppercase transition-all ${isProcessingImage ? 'opacity-50' : 'hover:bg-gold-500 hover:text-black cursor-pointer'}`}>
-                  {isProcessingImage ? 'Processing...' : 'Upload Image'}
-                </div>
+                {invErrors.sku && <span className="text-red-400 text-[9px] uppercase">{invErrors.sku.message}</span>}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Product Name *</label>
+                <input
+                  type="text"
+                  {...registerInv("name")}
+                  className={`w-full bg-black border ${invErrors.name ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
+                  placeholder="Royal Diamond Ring"
+                />
+                {invErrors.name && <span className="text-red-400 text-[9px] uppercase">{invErrors.name.message}</span>}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Category</label>
+                <select
+                  {...registerInv("category")}
+                  className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 appearance-none"
+                >
+                  {categories.filter(c => c !== "All").map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Metal Type</label>
+                <select
+                  {...registerInv("metal")}
+                  className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 appearance-none"
+                >
+                  <option value="Gold">Gold</option>
+                  <option value="Rose Gold">Rose Gold</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Silver">Silver</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Purity</label>
+                <select
+                  {...registerInv("purity")}
+                  className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 appearance-none"
+                >
+                  <option value="24K">24K</option>
+                  <option value="22K">22K</option>
+                  <option value="18K">18K</option>
+                  <option value="14K">14K</option>
+                  <option value="PT950">PT950</option>
+                  <option value="925">925 Sterling</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Weight (Grams) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  {...registerInv("weight")}
+                  className={`w-full bg-black border ${invErrors.weight ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
+                />
+                {invErrors.weight && <span className="text-red-400 text-[9px] uppercase">{invErrors.weight.message}</span>}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Making Charges /gm (₹) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  {...registerInv("making_charges")}
+                  className={`w-full bg-black border ${invErrors.making_charges ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
+                />
+                {invErrors.making_charges && <span className="text-red-400 text-[9px] uppercase">{invErrors.making_charges.message}</span>}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase text-white/50 tracking-wider">Stock Count *</label>
+                <input
+                  type="number"
+                  step="1"
+                  {...registerInv("stock_count")}
+                  className={`w-full bg-black border ${invErrors.stock_count ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
+                />
+                {invErrors.stock_count && <span className="text-red-400 text-[9px] uppercase">{invErrors.stock_count.message}</span>}
               </div>
             </div>
-            {invErrors.image_url && <span className="text-red-400 text-[9px] uppercase">{invErrors.image_url.message}</span>}
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase text-white/50 tracking-wider">Product Story (Description)</label>
-            <textarea
-              {...registerInv("description")}
-              rows={3}
-              className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 resize-none"
-            ></textarea>
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase text-white/50 tracking-wider">High-Res Image URL *</label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  {...registerInv("image_url")}
+                  placeholder="https://..."
+                  className={`flex-1 bg-black border ${invErrors.image_url ? 'border-red-500' : 'border-white/10'} px-3 py-2.5 text-white focus:outline-none focus:border-gold-500`}
+                />
+                <div className="relative shrink-0 w-36 h-[42px]">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isProcessingImage}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                  />
+                  <div className={`w-full h-full flex items-center justify-center border border-gold-500/50 bg-gold-500/10 text-gold-300 text-[9px] font-bold tracking-widest uppercase transition-all ${isProcessingImage ? 'opacity-50' : 'hover:bg-gold-500 hover:text-black cursor-pointer'}`}>
+                    {isProcessingImage ? 'Processing...' : 'Upload Image'}
+                  </div>
+                </div>
+              </div>
+              {invErrors.image_url && <span className="text-red-400 text-[9px] uppercase">{invErrors.image_url.message}</span>}
+            </div>
 
-          <GoldButton type="submit" className="w-full py-4 text-xs font-bold mt-2">
-            {editMode ? "Update Product Record" : "Enroll Product to Catalogue"}
-          </GoldButton>
-        </form>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase text-white/50 tracking-wider">Product Story (Description)</label>
+              <textarea
+                {...registerInv("description")}
+                rows={3}
+                className="w-full bg-black border border-white/10 px-3 py-2.5 text-white focus:outline-none focus:border-gold-500 resize-none"
+              ></textarea>
+            </div>
+
+            <GoldButton type="submit" className="w-full py-4 text-xs font-bold mt-2">
+              {editMode ? "Update Product Record" : "Enroll Product to Catalogue"}
+            </GoldButton>
+          </form>
+        </ErrorBoundary>
       </Modal>
 
     </div>
