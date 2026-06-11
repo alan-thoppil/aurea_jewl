@@ -212,7 +212,4 @@ app.all('*any', (req, res, next) => {
 app.use(globalErrorHandler)
 
 // ============================================
-// EXPORT APP
-// ============================================
-
 export default app
