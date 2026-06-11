@@ -789,7 +789,7 @@ export function StateProvider({ children }) {
     // For simplicity, Repair estimate isn't posted to ledger until status is set to "Delivered" (Revenue collected)
   };
 
-  const updateRepairStatus = (id, newStatus) => {
+  const updateRepairStatus = async (id, newStatus) => {
     let repairRecord = repairs.find((r) => r.id === id);
     setRepairs((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
@@ -811,6 +811,21 @@ export function StateProvider({ children }) {
           }
         ];
       });
+    }
+
+    if (repairRecord && repairRecord.customer_email) {
+      try {
+        await fetchWithAuth("http://localhost:5002/api/admin/notify-repair", {
+          method: "POST",
+          body: JSON.stringify({
+            ...repairRecord,
+            status: newStatus
+          })
+        });
+        console.log(`[ERP] Repair status updated notification sent to: ${repairRecord.customer_email}`);
+      } catch (err) {
+        console.error("[ERP] Failed to trigger repair notification email:", err);
+      }
     }
   };
 

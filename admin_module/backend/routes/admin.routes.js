@@ -20,8 +20,8 @@ import {
 
     paginatedProductsController,
 
-    paginatedOrdersController
-
+    paginatedOrdersController,
+    notifyRepairController
 } from '../controllers/admin.controller.js'
 
 import {
@@ -131,6 +131,11 @@ router.get(
 router.get(
     '/paginated-orders',
     paginatedOrdersController
+)
+
+router.post(
+    '/notify-repair',
+    notifyRepairController
 )
 
 export default router

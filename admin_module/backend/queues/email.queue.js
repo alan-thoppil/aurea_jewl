@@ -46,10 +46,24 @@ export const emailQueue =
     )
 */
 
+import { sendEmailService } from '../services/email.service.js';
+
 // Temporary Mock for Queue to prevent connection crashes and run jobs synchronously.
 export const emailQueue = {
     add: async (name, data, opts) => {
         console.log(`[Queue Mock] Job added synchronously: ${name}`, data);
+        if (data && (data.to || data.email)) {
+            try {
+                await sendEmailService({
+                    to: data.to || data.email,
+                    subject: data.subject || "Aurea Restorations & Fine Jewelry",
+                    html: data.html
+                });
+                console.log(`[Queue Mock] Email sent successfully to ${data.to || data.email}`);
+            } catch (err) {
+                console.error(`[Queue Mock] Error sending email synchronously:`, err.message);
+            }
+        }
         return { id: 'mock-job-id', name, data };
     },
     getFailed: async () => [],

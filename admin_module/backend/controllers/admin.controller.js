@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase.js'
+import { sendEmailService } from '../services/email.service.js'
 
 // ============================================
 // GET ALL ORDERS
@@ -673,3 +674,77 @@ export const paginatedOrdersController =
         }
 
     }
+
+// ============================================
+// NOTIFY REPAIR STATUS
+// ============================================
+export const notifyRepairController = async (req, res) => {
+    try {
+        const { id, customer_name, customer_email, item_description, estimated_cost, status } = req.body;
+
+        if (!customer_email) {
+            return res.status(400).json({ success: false, error: 'Customer email is required for notification' });
+        }
+
+        const subject = `Aurea Restorations - Repair Job #${id.slice(-4).toUpperCase()} is ${status.toUpperCase()}`;
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid rgba(212, 175, 55, 0.2); background-color: #0B0B0B; color: #F5F5F5;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #D4AF37; font-family: Georgia, serif; letter-spacing: 4px; margin: 0; font-size: 24px; text-transform: uppercase;">AUREA</h2>
+                    <span style="font-size: 9px; color: rgba(245, 245, 245, 0.4); text-transform: uppercase;">Atelier Restorations Log</span>
+                </div>
+                <hr style="border: none; border-top: 1px solid rgba(212, 175, 55, 0.15); margin-bottom: 25px;" />
+                
+                <p style="font-size: 13px; line-height: 1.6;">Dear <strong>${customer_name}</strong>,</p>
+                <p style="font-size: 13px; line-height: 1.6;">We are pleased to inform you that your fine jewelry item restoration status is updated to <strong>${status.toUpperCase()}</strong>.</p>
+                
+                <div style="background-color: #111111; padding: 20px; border-left: 3px solid #D4AF37; margin: 25px 0; font-size: 12px; line-height: 1.8;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="color: rgba(245, 245, 245, 0.5); padding: 4px 0; width: 35%;">Job Identifier:</td>
+                            <td style="color: #F5F5F5; font-weight: bold;">#${id.slice(-4).toUpperCase()}</td>
+                        </tr>
+                        <tr>
+                            <td style="color: rgba(245, 245, 245, 0.5); padding: 4px 0;">Item Restored:</td>
+                            <td style="color: #F5F5F5;">${item_description}</td>
+                        </tr>
+                        <tr>
+                            <td style="color: rgba(245, 245, 245, 0.5); padding: 4px 0;">Restoration Fee:</td>
+                            <td style="color: #D4AF37; font-weight: bold;">₹${Number(estimated_cost).toLocaleString('en-IN')}</td>
+                        </tr>
+                        <tr>
+                            <td style="color: rgba(245, 245, 245, 0.5); padding: 4px 0;">Current State:</td>
+                            <td style="color: #58a6ff; font-weight: bold; text-transform: uppercase;">${status}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                ${status.toLowerCase() === 'ready' ? `
+                    <div style="border: 1px dashed rgba(34, 197, 94, 0.3); background-color: rgba(34, 197, 94, 0.03); padding: 15px; text-align: center; margin: 25px 0;">
+                        <span style="font-size: 13px; color: #4ade80; font-weight: bold; display: block; margin-bottom: 4px; text-transform: uppercase;">Ready for Pick Up</span>
+                        <span style="font-size: 11px; color: rgba(245, 245, 245, 0.7);">Your piece has passed our quality inspections and is ready at our showroom. Please bring this notification or your Job ID at the pick up.</span>
+                    </div>
+                ` : ''}
+
+                <p style="font-size: 13px; line-height: 1.6; margin-top: 25px;">Should you have any inquiries regarding your restoration, please contact our showroom desk.</p>
+                <p style="font-size: 13px; line-height: 1.6; margin-top: 20px;">Sincerely,<br/><strong style="color: #D4AF37;">Aurea Restorations Desk</strong></p>
+                
+                <hr style="border: none; border-top: 1px solid rgba(245, 245, 245, 0.08); margin: 30px 0 15px 0;" />
+                <p style="font-size: 9px; color: rgba(245, 245, 245, 0.3); text-align: center; margin: 0;">
+                    This is an automatically generated transaction message from AUREA. Please do not reply to this email.
+                </p>
+            </div>
+        `;
+
+        await sendEmailService({
+            to: customer_email,
+            subject,
+            html
+        });
+
+        res.json({ success: true, message: 'Repair job status notification sent' });
+    } catch (error) {
+        console.error("notifyRepairController error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

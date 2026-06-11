@@ -15,7 +15,9 @@ import {
   Smartphone, 
   ArrowRight,
   TrendingUp,
-  Hammer
+  Hammer,
+  FileText,
+  Printer
 } from "lucide-react";
 
 export default function RepairsPage() {
@@ -24,8 +26,17 @@ export default function RepairsPage() {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
+
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [selectedInvoiceJob, setSelectedInvoiceJob] = useState(null);
+
+  const handleViewInvoice = (job) => {
+    setSelectedInvoiceJob(job);
+    setInvoiceModalOpen(true);
+  };
 
   const statuses = ["Received", "In Progress", "Ready", "Delivered"];
 
@@ -44,6 +55,7 @@ export default function RepairsPage() {
     addRepairJob({
       customer_name: customerName,
       customer_phone: customerPhone,
+      customer_email: customerEmail,
       item_description: itemDescription,
       estimated_cost: parseFloat(estimatedCost),
       status: "Received"
@@ -52,6 +64,7 @@ export default function RepairsPage() {
     // Reset Form
     setCustomerName("");
     setCustomerPhone("");
+    setCustomerEmail("");
     setItemDescription("");
     setEstimatedCost("");
     setRegisterModalOpen(false);
@@ -219,6 +232,15 @@ export default function RepairsPage() {
                         >
                           <Smartphone size={11} />
                         </button>
+                        {(status === "Ready" || status === "Delivered") && (
+                          <button
+                            onClick={() => handleViewInvoice(job)}
+                            className="py-1.5 px-2.5 flex items-center justify-center border border-gold-500/30 text-gold-300 hover:text-gold-100 hover:bg-gold-500/10 transition-all cursor-pointer bg-white/2"
+                            title="Print / Download Repair Invoice"
+                          >
+                            <FileText size={11} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -237,11 +259,11 @@ export default function RepairsPage() {
       >
         <form onSubmit={handleRegister} className="space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Customer Name */}
             <div className="space-y-2">
               <label className="block text-[10px] uppercase tracking-widest text-white/60">
-                Customer Name
+                Customer Name *
               </label>
               <input
                 required
@@ -256,7 +278,7 @@ export default function RepairsPage() {
             {/* Customer Phone */}
             <div className="space-y-2">
               <label className="block text-[10px] uppercase tracking-widest text-white/60">
-                WhatsApp Phone Number
+                WhatsApp Phone *
               </label>
               <input
                 required
@@ -264,6 +286,21 @@ export default function RepairsPage() {
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="e.g. +91 98765 43210"
+                className="w-full bg-zinc-950 border border-white/10 px-4 py-3 text-sm focus:outline-none focus:border-gold-500/50 text-white rounded-none"
+              />
+            </div>
+
+            {/* Customer Email */}
+            <div className="space-y-2">
+              <label className="block text-[10px] uppercase tracking-widest text-white/60">
+                Customer Email *
+              </label>
+              <input
+                required
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="e.g. eleanor@monarch.in"
                 className="w-full bg-zinc-950 border border-white/10 px-4 py-3 text-sm focus:outline-none focus:border-gold-500/50 text-white rounded-none"
               />
             </div>
@@ -310,13 +347,98 @@ export default function RepairsPage() {
             </button>
             <GoldButton
               type="submit"
-              disabled={!customerName || !customerPhone || !itemDescription || !estimatedCost}
+              disabled={!customerName || !customerPhone || !customerEmail || !itemDescription || !estimatedCost}
               className="flex-1"
             >
               Register Job
             </GoldButton>
           </div>
         </form>
+      </Modal>
+
+      {/* REPAIR INVOICE MODAL */}
+      <Modal
+        isOpen={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        title="Restoration Tax Invoice"
+        className="max-w-xl"
+      >
+        {selectedInvoiceJob && (
+          <div className="flex flex-col gap-6 text-left text-xs bg-zinc-950 p-6 border border-white/5 relative">
+            {/* Stamp */}
+            <div className="absolute top-4 right-4 border-2 border-gold-500/40 text-gold-400 font-bold uppercase tracking-widest text-[9px] px-3 py-1 rotate-6 select-none bg-zinc-950">
+              REPAIR WORK SECURED
+            </div>
+
+            {/* Header info */}
+            <div className="flex justify-between items-start border-b border-white/10 pb-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-base font-serif font-bold text-white tracking-widest uppercase">AUREA ATELIERS</span>
+                <span className="text-[9px] text-white/30 uppercase tracking-widest">GK-1, New Delhi • Tel: 011-49876543</span>
+                <span className="text-[9px] text-gold-500/70 font-semibold uppercase tracking-wider">GSTIN: 27AUREA7113J1Z0 • HSN: 7113</span>
+              </div>
+              <div className="flex flex-col items-end gap-1 text-right">
+                <span className="font-serif font-bold text-white uppercase text-xs">Tax Receipt</span>
+                <span className="text-[10px] text-white/50">#REP-{selectedInvoiceJob.id.slice(-6).toUpperCase()}</span>
+                <span className="text-[9px] text-white/30 uppercase">Date: {new Date(selectedInvoiceJob.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+
+            {/* Customer info */}
+            <div className="flex flex-col gap-1 text-[10px] text-white/60">
+              <span className="text-[9px] uppercase tracking-wider text-white/40">Billed To:</span>
+              <span className="font-bold text-white text-xs">{selectedInvoiceJob.customer_name}</span>
+              <span>Phone: {selectedInvoiceJob.customer_phone}</span>
+              {selectedInvoiceJob.customer_email && <span>Email: {selectedInvoiceJob.customer_email}</span>}
+            </div>
+
+            {/* Items table */}
+            <div className="border-t border-b border-white/10 py-3">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[9px] text-white/40 uppercase tracking-wider">
+                    <th className="pb-2">Description of Work</th>
+                    <th className="pb-2 text-right">Amount (Excl. Tax)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="text-white border-t border-white/5">
+                    <td className="py-2.5 max-w-[250px] leading-relaxed pr-4">{selectedInvoiceJob.item_description}</td>
+                    <td className="py-2.5 text-right font-mono">₹{(selectedInvoiceJob.estimated_cost / 1.03).toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Calculations */}
+            <div className="flex flex-col gap-1.5 items-end text-right font-light">
+              <div className="flex justify-between w-64 text-[10px] text-white/50">
+                <span>Subtotal (Net):</span>
+                <span>₹{(selectedInvoiceJob.estimated_cost / 1.03).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between w-64 text-[10px] text-white/50">
+                <span>GST (3%):</span>
+                <span>₹{(selectedInvoiceJob.estimated_cost - (selectedInvoiceJob.estimated_cost / 1.03)).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between w-64 border-t border-white/10 pt-2 text-sm font-serif font-bold text-gold-300">
+                <span>Total Amount:</span>
+                <span>₹{selectedInvoiceJob.estimated_cost.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-between items-center pt-4 border-t border-white/10 mt-2">
+              <span className="text-[9px] text-white/30 uppercase tracking-widest">Aurea Restorations ERP</span>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs tracking-widest uppercase border border-gold-500 bg-gold-500/10 text-gold-300 font-bold hover:bg-gold-500 hover:text-black transition-all cursor-pointer"
+              >
+                <Printer size={12} />
+                Print / Download Receipt
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

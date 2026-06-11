@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function Modal({ isOpen, onClose, title, children, className = "" }) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -16,10 +20,11 @@ export default function Modal({ isOpen, onClose, title, children, className = ""
   }, [isOpen]);
 
   if (!isOpen) return null;
+  if (!mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className={`relative w-full max-w-2xl bg-[#111111] border border-gold-500/30 p-8 overflow-y-auto max-h-[90vh] shadow-[0_20px_50px_rgba(212,175,55,0.2)] ${className}`}>
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className={`relative w-full max-w-2xl bg-[#111111] border border-gold-500/30 p-8 overflow-y-auto max-h-[90vh] shadow-[0_20px_50px_rgba(212,175,55,0.2)] animate-scaleIn ${className}`}>
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 mb-6 border-b border-gold-500/10">
@@ -37,5 +42,7 @@ export default function Modal({ isOpen, onClose, title, children, className = ""
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
