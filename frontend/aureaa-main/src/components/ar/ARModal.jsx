@@ -214,13 +214,21 @@ const ARModal = () => {
 
           // Base the visual scale directly on shoulder coordinates if visible, otherwise fall back to face coordinates
           let targetCoordScale = faceWidth * 1.62;
-          if (leftShoulder && rightShoulder && leftShoulder.visibility > 0.4 && rightShoulder.visibility > 0.4) {
-            const shoulderDist = Math.sqrt(Math.pow(leftShoulder.x - rightShoulder.x, 2) + Math.pow(leftShoulder.y - rightShoulder.y, 2));
-            targetCoordScale = shoulderDist * 0.65; // Sized relative to actual shoulder coordinate distance
-          }
+          let neckYOffset = faceWidth * 1.15;
 
-          // Lock necklace coordinates to chest/collarbone positioning (pushed a bit further down)
-          const neckYOffset = faceWidth * 1.15; 
+          const nameLower = (activeProduct.name || "").toLowerCase();
+          const descLower = (activeProduct.description || "").toLowerCase();
+          const isChoker = nameLower.includes('choker') || descLower.includes('choker');
+
+          if (isChoker) {
+            neckYOffset = faceWidth * 0.68; // Anchored high on the neck / throat area
+            targetCoordScale = faceWidth * 1.15; // Snug fit around the neck width
+          } else {
+            if (leftShoulder && rightShoulder && leftShoulder.visibility > 0.4 && rightShoulder.visibility > 0.4) {
+              const shoulderDist = Math.sqrt(Math.pow(leftShoulder.x - rightShoulder.x, 2) + Math.pow(leftShoulder.y - rightShoulder.y, 2));
+              targetCoordScale = shoulderDist * 0.65; // Sized relative to actual shoulder coordinate distance
+            }
+          }
           
           rawPosition = {
             x: chin.x,

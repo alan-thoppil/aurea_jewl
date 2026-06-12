@@ -38,6 +38,8 @@ export const createOrderService =
                 throw new AppError('Customer email is required for checkout', 400);
             }
 
+            const cleanPhone = phone ? phone.trim() : "";
+
             // 1. Check if customer profile already exists by email
             const { data: customer, error: customerFetchError } = await supabase
                 .from('customers')
@@ -77,7 +79,7 @@ export const createOrderService =
                             full_name: fullName,
                             email: email,
                             password_hash: 'guest_checkout_placeholder',
-                            phone: phone || '+91 99999 99999',
+                            phone: cleanPhone || null, // Users table allows null and won't conflict
                             role: 'customer'
                         });
 
@@ -86,62 +88,84 @@ export const createOrderService =
                     }
                 }
             } else {
-                // Customer profile does not exist. Check if user exists by email.
-                const { data: existingUser, error: userFetchError } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('email', email)
-                    .maybeSingle();
-
-                if (userFetchError) {
-                    throw new AppError(userFetchError.message, 500);
+                // Customer profile does not exist.
+                // Check if customer profile already exists by phone to prevent constraint violations
+                let existingCustomerByPhone = null;
+                if (cleanPhone) {
+                    const { data: custByPhone, error: phoneFetchError } = await supabase
+                        .from('customers')
+                        .select('id')
+                        .eq('phone', cleanPhone)
+                        .maybeSingle();
+                    if (phoneFetchError) {
+                        throw new AppError(phoneFetchError.message, 500);
+                    }
+                    existingCustomerByPhone = custByPhone;
                 }
 
-                if (existingUser) {
-                    customerId = existingUser.id;
+                if (existingCustomerByPhone) {
+                    customerId = existingCustomerByPhone.id;
                 } else {
-                    // Create new user record first
+                    // Check if user exists by email
+                    const { data: existingUser, error: userFetchError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('email', email)
+                        .maybeSingle();
+
+                    if (userFetchError) {
+                        throw new AppError(userFetchError.message, 500);
+                    }
+
+                    if (existingUser) {
+                        customerId = existingUser.id;
+                    } else {
+                        // Create new user record first
+                        const nameParts = (name || 'Guest').trim().split(/\s+/);
+                        const firstName = nameParts[0] || 'Guest';
+                        const lastName = nameParts.slice(1).join(' ') || '';
+                        const fullName = `${firstName} ${lastName}`.trim();
+
+                        const { data: newUser, error: userInsertError } = await supabase
+                            .from('users')
+                            .insert({
+                                full_name: fullName,
+                                email: email,
+                                password_hash: 'guest_checkout_placeholder',
+                                phone: cleanPhone || null, // Null is allowed and won't conflict
+                                role: 'customer'
+                            })
+                            .select()
+                            .single();
+
+                        if (userInsertError) {
+                            throw new AppError(userInsertError.message, 500);
+                        }
+                        customerId = newUser.id;
+                    }
+
+                    // Create customer profile with the same ID
                     const nameParts = (name || 'Guest').trim().split(/\s+/);
                     const firstName = nameParts[0] || 'Guest';
                     const lastName = nameParts.slice(1).join(' ') || '';
-                    const fullName = `${firstName} ${lastName}`.trim();
 
-                    const { data: newUser, error: userInsertError } = await supabase
-                        .from('users')
+                    // Since customers table requires a unique non-null phone, generate a unique guest phone if none is provided
+                    const uniqueGuestPhone = cleanPhone || `+91 guest_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                    const { error: customerInsertError } = await supabase
+                        .from('customers')
                         .insert({
-                            full_name: fullName,
+                            id: customerId,
+                            first_name: firstName,
+                            last_name: lastName,
                             email: email,
-                            password_hash: 'guest_checkout_placeholder',
-                            phone: phone || '+91 99999 99999',
-                            role: 'customer'
-                        })
-                        .select()
-                        .single();
+                            phone: uniqueGuestPhone,
+                            date_of_birth: birthday || null
+                        });
 
-                    if (userInsertError) {
-                        throw new AppError(userInsertError.message, 500);
+                    if (customerInsertError) {
+                        throw new AppError(customerInsertError.message, 500);
                     }
-                    customerId = newUser.id;
-                }
-
-                // Create customer profile with the same ID
-                const nameParts = (name || 'Guest').trim().split(/\s+/);
-                const firstName = nameParts[0] || 'Guest';
-                const lastName = nameParts.slice(1).join(' ') || '';
-
-                const { error: customerInsertError } = await supabase
-                    .from('customers')
-                    .insert({
-                        id: customerId,
-                        first_name: firstName,
-                        last_name: lastName,
-                        email: email,
-                        phone: phone || '+91 99999 99999',
-                        date_of_birth: birthday || null
-                    });
-
-                if (customerInsertError) {
-                    throw new AppError(customerInsertError.message, 500);
                 }
             }
 
