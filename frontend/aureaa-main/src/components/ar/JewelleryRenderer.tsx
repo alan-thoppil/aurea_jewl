@@ -412,12 +412,10 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
 
     // B. Apply Quaternion Orientation (Pitch, Yaw, Roll)
     if (poseData.rotation instanceof THREE.Quaternion) {
-      // Create mirror-aware rotation if mirrored
+      // Create mirror-aware rotation if mirrored using direct quaternion math to prevent gimbal lock
       if (isMirrored) {
-        const euler = new THREE.Euler().setFromQuaternion(poseData.rotation, 'YXZ');
-        euler.y = -euler.y; // Invert yaw
-        euler.z = -euler.z; // Invert roll
-        const mirrorQuat = new THREE.Quaternion().setFromEuler(euler);
+        const q = poseData.rotation;
+        const mirrorQuat = new THREE.Quaternion(q.x, -q.y, -q.z, q.w);
         groupRef.current.quaternion.slerp(mirrorQuat, 0.25);
       } else {
         groupRef.current.quaternion.slerp(poseData.rotation, 0.25);
@@ -462,13 +460,11 @@ export const JewelleryRenderer: React.FC<JewelleryRendererProps> = ({
           
           rightEarRef.current?.position.lerp(new THREE.Vector3(targetXR, targetYR, targetZR), 0.25);
           
-          // Apply quaternion rotation to earrings
+          // Apply quaternion rotation to earrings using direct quaternion mirroring to prevent gimbal lock
           if (poseData.rotation instanceof THREE.Quaternion) {
             if (isMirrored) {
-              const euler = new THREE.Euler().setFromQuaternion(poseData.rotation, 'YXZ');
-              euler.y = -euler.y;
-              euler.z = -euler.z;
-              const mirrorQuat = new THREE.Quaternion().setFromEuler(euler);
+              const q = poseData.rotation;
+              const mirrorQuat = new THREE.Quaternion(q.x, -q.y, -q.z, q.w);
               leftEarRef.current?.quaternion.slerp(mirrorQuat, 0.25);
               rightEarRef.current?.quaternion.slerp(mirrorQuat, 0.25);
             } else {

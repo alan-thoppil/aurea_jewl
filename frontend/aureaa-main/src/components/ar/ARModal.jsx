@@ -501,7 +501,12 @@ const ARModal = () => {
               )}
 
               {/* 3D WebGL Canvas Layer */}
-              <ARCanvas activeProduct={activeProduct} poseData={poseData} />
+              <ARCanvas 
+                activeProduct={activeProduct} 
+                poseData={poseData} 
+                width={videoElement ? videoElement.videoWidth : 1280}
+                height={videoElement ? videoElement.videoHeight : 720}
+              />
 
               {/* Real-time 2D Composite Canvas (Final Display) */}
               <canvas

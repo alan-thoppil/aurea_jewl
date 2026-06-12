@@ -169,10 +169,7 @@ export const calculateBangleAlignment = (
   const vIndex = new THREE.Vector3(index.x, index.y, index.z || 0);
   const vPinky = new THREE.Vector3(pinky.x, pinky.y, pinky.z || 0);
 
-  // X axis: pinky to index vector (wrist width direction)
-  const xAxis = new THREE.Vector3().subVectors(vIndex, vPinky).normalize();
-
-  // Y axis: wrist to palm center vector (arm direction)
+  // Y axis: wrist to palm center vector (arm direction) - primary reference
   const palmCenter = new THREE.Vector3(
     (vIndex.x + vPinky.x) / 2,
     (vIndex.y + vPinky.y) / 2,
@@ -180,11 +177,15 @@ export const calculateBangleAlignment = (
   );
   const yAxis = new THREE.Vector3().subVectors(palmCenter, vWrist).normalize();
 
-  // Make X and Y perfectly orthogonal
-  // Z = X cross Y
-  const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis).normalize();
-  // Re-project Y to ensure complete orthogonality
-  yAxis.crossVectors(zAxis, xAxis).normalize();
+  // Temporary X axis (pinky to index vector) to find the transverse plane of the hand
+  const xAxisTemp = new THREE.Vector3().subVectors(vIndex, vPinky).normalize();
+
+  // Z axis: orthogonal to the palm plane (X_temp cross Y)
+  const zAxis = new THREE.Vector3().crossVectors(xAxisTemp, yAxis).normalize();
+
+  // X axis: perpendicular to the arm direction (Y) in the hand plane
+  // This removes the knuckle-height offset bias and aligns the bracelet perpendicular to the arm
+  const xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
 
   // Construct standard 3D rotation matrix and extract its quaternion orientation
   const matrix = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
@@ -192,11 +193,20 @@ export const calculateBangleAlignment = (
 
   // Wrist width indicator (distance between index base and pinky base)
   const wristWidth = Math.sqrt(Math.pow(index.x - pinky.x, 2) + Math.pow(index.y - pinky.y, 2));
-  const scaleVal = wristWidth * 1.85;
+  
+  // Shift the bracelet down the arm (negative Y direction) slightly to sit exactly on the wrist crease
+  const offsetDistance = wristWidth * 0.25;
+  const position = new THREE.Vector3().addVectors(
+    wristPos,
+    yAxis.clone().multiplyScalar(-offsetDistance)
+  );
+
+  // Calibrated scale multiplier (1.45 instead of 1.85) to fit the wrist perfectly
+  const scaleVal = wristWidth * 1.45;
   const scale = new THREE.Vector3(scaleVal, scaleVal * 0.85, scaleVal); // Slightly elliptical Bangle projection
 
   return {
-    position: wristPos,
+    position,
     rotation,
     scale
   };

@@ -3,9 +3,12 @@ import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import { JewelleryRenderer } from './JewelleryRenderer';
 
-export const ARCanvas = ({ activeProduct, poseData }) => {
+export const ARCanvas = ({ activeProduct, poseData, width = 1280, height = 720 }) => {
   return (
-    <div className="absolute inset-0 w-full h-full pointer-events-none z-10 opacity-0 absolute">
+    <div 
+      className="absolute top-0 left-0 pointer-events-none z-10 opacity-0 overflow-hidden"
+      style={{ width: `${width}px`, height: `${height}px` }}
+    >
       <Canvas
         id="ar-webgl-canvas"
         camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 100 }}
