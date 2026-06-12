@@ -33,7 +33,7 @@ export const createOrderService =
             // FIND OR CREATE USER & CUSTOMER (BULLETPROOF)
             // ==========================================
             const { name, email, phone, birthday } = orderData.customer_details || {};
-            
+
             if (!email) {
                 throw new AppError('Customer email is required for checkout', 400);
             }
@@ -97,6 +97,7 @@ export const createOrderService =
                         .select('id')
                         .eq('phone', cleanPhone)
                         .maybeSingle();
+
                     if (phoneFetchError) {
                         throw new AppError(phoneFetchError.message, 500);
                     }
@@ -150,7 +151,7 @@ export const createOrderService =
                     const lastName = nameParts.slice(1).join(' ') || '';
 
                     // Since customers table requires a unique non-null phone, generate a unique guest phone if none is provided
-                    const uniqueGuestPhone = cleanPhone || `+91 guest_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                    const uniqueGuestPhone = cleanPhone || `g_${Date.now().toString().slice(-10)}_${Math.floor(Math.random() * 100)}`;
 
                     const { error: customerInsertError } = await supabase
                         .from('customers')
